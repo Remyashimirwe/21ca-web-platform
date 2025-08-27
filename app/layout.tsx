@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import React from "react";
+import Navbar from "@/components/Navbar";
+import { ThemeProvider } from "@/components/theme-provider"
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,21 +17,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "21st Century Academy",
-  description: "",
+    title: "21st Century Academy",
+    description: "Empowering learning with a modern LMS.",
+    icons: {
+        icon: [
+            { url: "/21CA_logo.png", sizes: "16x16" },
+            { url: "/21CA_logo.png", sizes: "32x32" },
+            { url: "/21CA_logo.png", sizes: "48x48" },
+        ],
+        apple: { url: "//21CA_logo.png", sizes: "180x180" },
+    },
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+      <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+      >
+          <Navbar/>
+          {children}
+      </ThemeProvider>
       </body>
     </html>
   );
