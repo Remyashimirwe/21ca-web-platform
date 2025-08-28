@@ -118,3 +118,119 @@
     @apply bg-background text-foreground;
   }
 }
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    scrolling-touch: auto;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Optional: Add subtle scroll indicators */
+@media (min-width: 768px) {
+    .scroll-container {
+        position: relative;
+    }
+
+    .scroll-container::before,
+    .scroll-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 20px;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .scroll-container::before {
+        left: 0;
+        background: linear-gradient(to right, var(--background), transparent);
+    }
+
+    .scroll-container::after {
+        right: 0;
+        background: linear-gradient(to left, var(--background), transparent);
+    }
+}
+/* Button text visibility fixes */
+.btn-primary-text {
+    color: var(--primary-foreground) !important;
+}
+
+/* Ensure button text is always visible */
+button {
+    color: inherit;
+}
+
+/* Fix for primary buttons specifically */
+.bg-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+}
+
+/* Enhanced contrast for button states */
+:root {
+    --primary: 220 14% 20%; /* Darker for better contrast */
+}
+
+.dark {
+    --primary: 210 40% 85%; /* Lighter for dark mode */
+}
+:root {
+    --primary: oklch(0.4 0.15 220); /* Blue-tinted with more chroma */
+    --primary-foreground: oklch(0.98 0 0); /* Pure white */
+}
+
+.dark {
+    --primary: oklch(0.7 0.15 220); /* Lighter blue for dark mode */
+    --primary-foreground: oklch(0.1 0 0); /* Dark text */
+}
+/* Enhanced button hover effects with background changes */
+.bg-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
+}
+
+/* Specific hover effects for different button variants */
+.hover\:bg-primary\/90:hover {
+    background-color: hsl(var(--primary) / 0.9);
+}
+
+/* Color-specific hover effects for pricing cards */
+.hover-bg-green:hover {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.1));
+    border-color: rgb(34 197 94 / 0.3);
+}
+
+.hover-bg-blue:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.1));
+    border-color: rgb(59 130 246 / 0.3);
+}
+
+/* Button hover background transitions */
+button:hover {
+    background-color: hsl(var(--primary) / 0.85);
+    transition: all 0.2s ease-in-out;
+}
+
+/* Outline button hover effects */
+.border-primary:hover {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+}
+
+/* Ghost button hover effects */
+.hover\:bg-accent:hover {
+    background-color: hsl(var(--accent));
+}
+
+/* Enhanced transitions for all interactive elements */
+button,
+.group:hover,
+[role="button"]:hover {
+    transition: background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out,
+    transform 0.2s ease-in-out;
+}

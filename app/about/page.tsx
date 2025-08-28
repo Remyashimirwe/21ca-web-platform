@@ -17,6 +17,7 @@ import {
     Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 const AboutPage = () => {
     const [mounted, setMounted] = useState(false);
@@ -287,58 +288,81 @@ const AboutPage = () => {
                 </div>
             </section>
 
-            {/* Our Story Timeline */}
-            <section className="py-20 bg-background">
-                <div className="container mx-auto px-6">
-                    <div className="text-center mb-16">
-                        <div className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4">
-                            Our Journey
-                        </div>
-                        <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-                            Our Story
-                        </h2>
-                        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                            From a small vision to a continental movement - here&#39;s how we&#39;ve grown and evolved
-                        </p>
-                    </div>
 
-                    <div className="relative">
-                        {/* Timeline line */}
-                        <div className="absolute left-1/2 transform -translate-x-px h-full w-0.5 bg-gradient-to-b from-primary to-primary/20 hidden lg:block"></div>
+{/* Our Story Timeline */}
+<section className="py-20 bg-background">
+  <div className="container mx-auto px-6">
+    <div className="text-center mb-16">
+      <div className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4">
+        Our Journey
+      </div>
+      <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+        Our Story
+      </h2>
+      <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+        From a small vision to a continental movement – here’s how we’ve grown and evolved
+      </p>
+    </div>
 
-                        <div className="space-y-12">
-                            {milestones.map((milestone, index) => (
-                                <div key={index} className={`grid lg:grid-cols-2 gap-8 lg:gap-16 items-center ${index % 2 === 1 ? 'lg:grid-flow-col-dense' : ''}`}>
-                                    {/* Content */}
-                                    <div className={`${index % 2 === 1 ? 'lg:col-start-1 lg:text-right' : 'lg:col-start-1'} relative`}>
-                                        <div className="bg-card rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
-                                            <div className={`flex items-center mb-4 ${index % 2 === 1 ? 'lg:justify-end' : 'justify-start'}`}>
-                                                <div className="bg-primary text-white px-4 py-2 rounded-full font-bold text-lg">
-                                                    {milestone.year}
-                                                </div>
-                                            </div>
-                                            <h3 className="text-2xl font-bold text-foreground mb-4">
-                                                {milestone.title}
-                                            </h3>
-                                            <p className="text-muted-foreground leading-relaxed">
-                                                {milestone.description}
-                                            </p>
-                                        </div>
+    <div className="relative">
+      {/* Timeline line */}
+      <div className="absolute left-1/2 transform -translate-x-px h-full w-0.5 bg-gradient-to-b from-primary to-primary/20 hidden lg:block"></div>
 
-                                        {/* Timeline dot */}
-                                        <div className={`hidden lg:block absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-primary rounded-full border-4 border-background shadow-lg ${index % 2 === 1 ? '-left-2' : '-right-2'}`}></div>
-                                    </div>
-
-                                    {/* Visual element placeholder for alternating layout */}
-                                    <div className={`${index % 2 === 1 ? 'lg:col-start-2' : 'lg:col-start-2'} hidden lg:block`}>
-                                        <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl"></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+      <div className="space-y-12">
+        {milestones.map((milestone, index) => (
+          <motion.div
+            key={index}
+            className={`grid lg:grid-cols-2 gap-8 lg:gap-16 items-center ${index % 2 === 1 ? 'lg:grid-flow-col-dense' : ''}`}
+            initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: index * 0.15 }}
+            viewport={{ once: true }}
+          >
+            {/* Content */}
+            <div className={`${index % 2 === 1 ? 'lg:col-start-1 lg:text-right' : 'lg:col-start-1'} relative`}>
+              <motion.div
+                className="bg-card rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className={`flex items-center mb-4 ${index % 2 === 1 ? 'lg:justify-end' : 'justify-start'}`}>
+                  <div className="bg-primary text-white px-4 py-2 rounded-full font-bold text-lg">
+                    {milestone.year}
+                  </div>
                 </div>
-            </section>
+                <h3 className="text-2xl font-bold text-foreground mb-4">
+                  {milestone.title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  {milestone.description}
+                </p>
+              </motion.div>
+
+              {/* Timeline dot */}
+              <motion.div
+                className={`hidden lg:block absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-primary rounded-full border-4 border-background shadow-lg ${index % 2 === 1 ? '-left-2' : '-right-2'}`}
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.4, delay: index * 0.15 + 0.2 }}
+                viewport={{ once: true }}
+              ></motion.div>
+            </div>
+
+            {/* Visual element */}
+            <motion.div
+              className={`${index % 2 === 1 ? 'lg:col-start-2' : 'lg:col-start-2'} hidden lg:block`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: index * 0.15 + 0.1 }}
+              viewport={{ once: true }}
+            >
+              <div className="aspect-square bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl"></div>
+            </motion.div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
 
             {/* Leadership Team */}
             <section className="py-20 bg-muted/30">

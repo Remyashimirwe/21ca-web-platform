@@ -24,7 +24,7 @@ const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
     const [currentLang, setCurrentLang] = useState('EN');
-    const [scrolled, setScrolled] = useState(false);
+    const [, setScrolled] = useState(false);
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -52,25 +52,14 @@ const Navbar = () => {
     const navigationItems = [
         { name: 'Home', href: '/' },
         { name: 'About', href: '/about' },
-        {
-            name: 'Programs',
-            href: '/programs',
-            dropdown: [
-                'STEM Education',
-                'Digital & Financial Literacy',
-                'Green Entrepreneurship',
-                'Faith-Based Coaching'
-            ]
-        },
-        { name: 'Courses', href: '/courses' },
-        { name: 'Resources', href: '/resources' },
+        { name: 'Programs', href: '/programs' },
         {
             name: 'Pages',
             href: '/pages',
             dropdown: [
                 'Blog',
                 'Impact Stories',
-                'Success Metrics',
+                'Price',
                 'Contact'
             ]
         },
@@ -98,11 +87,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 font-poppins ${
-            scrolled
-                ? 'bg-background/90 backdrop-blur-lg shadow-lg border-b border-border/50'
-                : 'bg-background border-b border-border'
-        }`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 bg-background shadow-md border-b border-border font-poppins`}>
             <div className="max-w-7xl mx-auto px-6">
                 <div className="flex justify-between items-center h-16">
 
