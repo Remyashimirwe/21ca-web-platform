@@ -66,7 +66,7 @@ const Navbar = () => {
         { name: 'Resources', href: '/resources' },
         {
             name: 'Pages',
-            href: '#',
+            href: '/pages',
             dropdown: [
                 'Blog',
                 'Impact Stories',
