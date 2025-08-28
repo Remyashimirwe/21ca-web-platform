@@ -16,6 +16,7 @@ import {
     Users,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
+import { FaFacebookF, FaTwitter, FaLinkedinIn } from "react-icons/fa";
 
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -122,22 +123,22 @@ const HomePage = () => {
         {
             name: "Dr. Sarah Uwimana",
             designation: "STEM Education Lead",
-            image: "/api/placeholder/200/200",
+            image: "https://i.pinimg.com/1200x/79/1b/72/791b7253ab26fe8bdcb9374082f593be.jpg",
         },
         {
             name: "Jean Claude Mugabo",
             designation: "Digital Finance Expert",
-            image: "/api/placeholder/200/200",
+            image: "https://i.pinimg.com/1200x/2b/7a/01/2b7a01d9272a3f00a4b380110a87d3dd.jpg",
         },
         {
             name: "Grace Nyirahabimana",
             designation: "Sustainability Coach",
-            image: "/api/placeholder/200/200",
+            image: "https://i.pinimg.com/736x/79/2d/39/792d390d73b7d3dc456b6f3d31c7dbed.jpg",
         },
         {
             name: "Emmanuel Nkurunziza",
             designation: "Faith-Based Mentor",
-            image: "/api/placeholder/200/200",
+            image: "https://i.pinimg.com/1200x/2b/7a/01/2b7a01d9272a3f00a4b380110a87d3dd.jpg",
         },
     ];
 
@@ -145,19 +146,19 @@ const HomePage = () => {
         {
             name: "Aisha Mukamana",
             profession: "Student Teacher",
-            image: "/api/placeholder/80/80",
+            image: "https://i.pinimg.com/736x/8c/6d/db/8c6ddb5fe6600fcc4b183cb2ee228eb7.jpg",
             text: "The STEM program transformed how I teach science. My students are now building robots and conducting real experiments!",
         },
         {
             name: "Patrick Niyonzima",
             profession: "Young Entrepreneur",
-            image: "/api/placeholder/80/80",
+            image: "https://i.pinimg.com/736x/6f/a3/6a/6fa36aa2c367da06b2a4c8ae1cf9ee02.jpg",
             text: "Thanks to the Green Entrepreneurship course, I started my solar panel business and now employ 12 people in my community.",
         },
         {
             name: "Marie Claire Ingabire",
             profession: "Financial Educator",
-            image: "/api/placeholder/80/80",
+            image: "https://i.pinimg.com/736x/8c/6d/db/8c6ddb5fe6600fcc4b183cb2ee228eb7.jpg",
             text: "The digital literacy program gave me tools to help rural communities access mobile banking and grow their savings.",
         },
     ];
@@ -388,8 +389,6 @@ const HomePage = () => {
                     </div>
                 </div>
             </section>
-
-            {/* Categories Section */}
             {/* Categories Section */}
             <section className="py-24 bg-background">
                 <div className="container mx-auto px-6">
@@ -624,18 +623,16 @@ const HomePage = () => {
                                 <div className="relative -mt-6 mx-4">
                                     <div className="bg-card border border-border rounded-xl p-1 shadow-lg">
                                         <div className="flex justify-center space-x-2 py-2">
-                                            {["facebook-f", "twitter", "linkedin-in"].map(
-                                                (social, socialIndex) => (
-                                                    <Button
-                                                        key={socialIndex}
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 rounded-full hover:bg-primary hover:text-white transition-all duration-200 hover:scale-110"
-                                                    >
-                                                        <i className={`fab fa-${social} text-xs`}/>
-                                                    </Button>
-                                                )
-                                            )}
+                                            {[FaFacebookF, FaTwitter, FaLinkedinIn].map((Icon, socialIndex) => (
+                                                <Button
+                                                    key={socialIndex}
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 rounded-full hover:bg-primary hover:text-white transition-all duration-200 hover:scale-110"
+                                                >
+                                                    <Icon size={12} />
+                                                </Button>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
