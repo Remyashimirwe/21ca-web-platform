@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useUser, UserButton } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -23,6 +22,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import {dark} from "@clerk/themes";
 
 const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);

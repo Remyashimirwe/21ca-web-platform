@@ -8,10 +8,12 @@ const isPublicRoute = createRouteMatcher([
     '/support',
     '/sign-in(.*)',
     '/sign-up(.*)',
-    '/api/webhooks/(.*)'
+    '/api/webhooks/(.*)',
+    '/partner/dashboard' // Partner dashboard is public
 ])
 
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+const isInstructorRoute = createRouteMatcher(['/instructor(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
     // Restrict admin routes to users with admin role
@@ -21,7 +23,14 @@ export default clerkMiddleware(async (auth, req) => {
         })
     }
 
-    // Protect all private routes
+    // Restrict instructor routes to users with instructor or admin role
+    if (isInstructorRoute(req)) {
+        await auth.protect((has) => {
+            return has({ role: 'instructor' }) || has({ role: 'admin' })
+        })
+    }
+
+    // Protect all private routes (except partner dashboard which is public)
     if (!isPublicRoute(req)) {
         await auth.protect()
     }

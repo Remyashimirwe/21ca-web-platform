@@ -1,70 +1,8 @@
-'use client'
 import { SignUp } from '@clerk/nextjs';
-import { useTheme } from 'next-themes';
-import { dark } from '@clerk/themes';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, Zap, Shield, Sparkles, Target } from 'lucide-react';
 
 export default function SignUpPage() {
-    const { theme } = useTheme();
-
-    // Create theme-aware appearance
-    const getClerkAppearance = () => {
-        const baseAppearance = {
-            variables: {
-                colorPrimary: theme === 'dark' ? 'hsl(142, 76%, 36%)' : 'hsl(142, 76%, 36%)', // Green primary
-                colorBackground: theme === 'dark' ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)',
-                colorInputBackground: theme === 'dark' ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)',
-                colorInputText: theme === 'dark' ? 'hsl(213, 31%, 91%)' : 'hsl(224, 71%, 4%)',
-                colorText: theme === 'dark' ? 'hsl(213, 31%, 91%)' : 'hsl(224, 71%, 4%)',
-                colorTextSecondary: theme === 'dark' ? 'hsl(215, 16%, 47%)' : 'hsl(215, 16%, 47%)',
-                borderRadius: '0.5rem',
-                fontFamily: 'inherit',
-            },
-            elements: {
-                formButtonPrimary:
-                    "bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105",
-                card: theme === 'dark'
-                    ? "shadow-2xl border border-slate-800 bg-slate-900/95 backdrop-blur-sm"
-                    : "shadow-2xl border border-slate-200 bg-white/95 backdrop-blur-sm",
-                headerTitle: theme === 'dark' ? "text-slate-100" : "text-slate-900",
-                headerSubtitle: theme === 'dark' ? "text-slate-400" : "text-slate-600",
-                socialButtonsBlockButton: theme === 'dark'
-                    ? "border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-100 transition-all duration-200 hover:scale-105"
-                    : "border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 transition-all duration-200 hover:scale-105",
-                formFieldInput: theme === 'dark'
-                    ? "border border-slate-700 bg-slate-800 text-slate-100 focus:border-green-500 focus:ring-green-500/20"
-                    : "border border-slate-200 bg-white text-slate-900 focus:border-green-500 focus:ring-green-500/20",
-                formFieldLabel: theme === 'dark' ? "text-slate-200" : "text-slate-700",
-                identityPreviewText: theme === 'dark' ? "text-slate-100" : "text-slate-900",
-                formResendCodeLink: "text-green-600 hover:text-green-700 transition-colors duration-200",
-                footerActionLink: "text-green-600 hover:text-green-700 transition-colors duration-200",
-                formFieldInputShowPasswordButton: theme === 'dark'
-                    ? "text-slate-400 hover:text-slate-200"
-                    : "text-slate-500 hover:text-slate-700",
-                dividerLine: theme === 'dark' ? "bg-slate-700" : "bg-slate-200",
-                dividerText: theme === 'dark' ? "text-slate-400" : "text-slate-500",
-                alertError: theme === 'dark'
-                    ? "bg-red-900/20 border-red-800 text-red-400"
-                    : "bg-red-50 border-red-200 text-red-700",
-                formFieldSuccessText: "text-green-600",
-                formFieldErrorText: theme === 'dark' ? "text-red-400" : "text-red-600",
-                otpCodeFieldInput: theme === 'dark'
-                    ? "border border-slate-700 bg-slate-800 text-slate-100 focus:border-green-500"
-                    : "border border-slate-200 bg-white text-slate-900 focus:border-green-500",
-            }
-        };
-
-        // Use Clerk's dark theme as base for dark mode
-        if (theme === 'dark') {
-            return {
-                baseTheme: dark,
-                ...baseAppearance,
-            };
-        }
-
-        return baseAppearance;
-    };
     const benefits = [
         {
             icon: Target,
@@ -90,7 +28,7 @@ export default function SignUpPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* Header */}
+            {/* Simple Header - No Navbar */}
             <div className="absolute top-0 left-0 right-0 z-10">
                 <div className="container mx-auto px-6 py-6">
                     <div className="flex items-center justify-between">
@@ -127,7 +65,7 @@ export default function SignUpPage() {
                                 <span className="block text-primary-gradient">Transformation Today</span>
                             </h1>
                             <p className="text-xl text-muted-foreground">
-                                Join thousands of learners building skills for the future with Africa&#39;s premier educational platform.
+                                Join thousands of learners building skills for the future with Africa's premier educational platform.
                             </p>
                         </div>
 
@@ -181,7 +119,24 @@ export default function SignUpPage() {
                         {/* Clerk Sign Up Component */}
                         <div className="flex justify-center">
                             <SignUp
-                                appearance={getClerkAppearance()}
+                                appearance={{
+                                    elements: {
+                                        formButtonPrimary:
+                                            "bg-primary hover:bg-primary/90 text-primary-foreground",
+                                        card: "shadow-2xl border border-border bg-card",
+                                        headerTitle: "text-foreground",
+                                        headerSubtitle: "text-muted-foreground",
+                                        socialButtonsBlockButton:
+                                            "border border-border bg-background hover:bg-muted text-foreground",
+                                        formFieldInput:
+                                            "border border-border bg-background text-foreground",
+                                        formFieldLabel: "text-foreground",
+                                        identityPreviewText: "text-foreground",
+                                        formResendCodeLink: "text-primary hover:text-primary/80",
+                                        footerActionLink: "text-primary hover:text-primary/80",
+                                        formFieldInputShowPasswordButton: "text-muted-foreground hover:text-foreground"
+                                    }
+                                }}
                                 redirectUrl="/dashboard"
                                 signInUrl="/sign-in"
                             />
