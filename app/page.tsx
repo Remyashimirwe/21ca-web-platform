@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import { FaFacebookF, FaTwitter, FaLinkedinIn } from "react-icons/fa";
+import Link from "next/link";
 
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -231,6 +232,7 @@ const HomePage = () => {
                                         </p>
                                         <div
                                             className="flex flex-col sm:flex-row gap-6 animate-fade-in-up animation-delay-600">
+                                            <Link href={"/programs"}>
                                             <Button
                                                 size="lg"
                                                 className="bg-primary-gradient hover:opacity-90 hover:scale-105 transition-all duration-200 text-white border-0 px-8 py-4 text-lg"
@@ -238,6 +240,7 @@ const HomePage = () => {
                                                 Explore Programs
                                                 <ArrowRight className="ml-2 h-6 w-6"/>
                                             </Button>
+                                            </Link>
                                             <Button
                                                 size="lg"
                                                 className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:from-yellow-500 hover:to-yellow-700 hover:scale-105 transition-all duration-200 px-8 py-4 text-lg font-semibold"
@@ -245,6 +248,7 @@ const HomePage = () => {
                                                 <Crown className="mr-2 h-5 w-5"/>
                                                 Get Premium
                                             </Button>
+                                            <Link href={"/sign-up"}>
                                             <Button
                                                 variant="outline"
                                                 size="lg"
@@ -253,6 +257,7 @@ const HomePage = () => {
                                                 <UserPlus className="mr-2 h-5 w-5"/>
                                                 Join Us
                                             </Button>
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>
