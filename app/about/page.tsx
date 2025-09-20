@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 const AboutPage = () => {
     const [mounted, setMounted] = useState(false);
@@ -184,6 +185,7 @@ const AboutPage = () => {
                                 practical knowledge, and the confidence to shape tomorrow&#39;s world.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up animation-delay-600">
+                                <Link href={"/pages/impact-stories"}>
                                 <Button
                                     size="lg"
                                     className="bg-primary-gradient hover:opacity-90 hover:scale-105 transition-all duration-200 text-white border-0 px-8 py-4"
@@ -191,6 +193,7 @@ const AboutPage = () => {
                                     Our Impact
                                     <ArrowRight className="ml-2 h-5 w-5" />
                                 </Button>
+                                </Link>
                                 <Button
                                     variant="outline"
                                     size="lg"

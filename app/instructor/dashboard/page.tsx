@@ -1,7 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import InstructorDashboard from '@/components/dashboards/instructor/InstructorDashboard';
-import Navbar from '@/components/Navbar';
 
 export default async function InstructorDashboardPage() {
     const { userId, sessionClaims } = await auth();
@@ -10,16 +9,11 @@ export default async function InstructorDashboardPage() {
         redirect('/sign-in');
     }
 
-    // Check if user has instructor role
-    const userRole = (sessionClaims?.metadata as any)?.role;
+    // Check if user has instructor role - fix the metadata path
+    const userRole = (sessionClaims?.publicMetadata as any)?.role;
     if (userRole !== 'instructor' && userRole !== 'admin') {
         redirect('/dashboard'); // Redirect non-instructor users to regular dashboard
     }
 
-    return (
-        <>
-            <Navbar />
-            <InstructorDashboard />
-        </>
-    );
+    return <InstructorDashboard />;
 }

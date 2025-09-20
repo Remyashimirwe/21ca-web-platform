@@ -383,6 +383,7 @@ const HomePage = () => {
                                 ))}
                             </div>
 
+                            <Link href={"/about"}>
                             <Button
                                 size="lg"
                                 className="hover:scale-105 transition-transform duration-200"
@@ -390,6 +391,7 @@ const HomePage = () => {
                                 Learn More About Us
                                 <ArrowRight className="ml-2 h-5 w-5"/>
                             </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -579,6 +581,7 @@ const HomePage = () => {
                     </div>
 
                     <div className="text-center mt-12">
+                        <Link href={"/programs"}>
                         <Button
                             variant="outline"
                             size="lg"
@@ -587,6 +590,7 @@ const HomePage = () => {
                             View All Courses
                             <ArrowRight className="ml-2 h-5 w-5"/>
                         </Button>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -768,6 +772,7 @@ const HomePage = () => {
                             context.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Link href={"/programs"}>
                             <Button
                                 size="lg"
                                 className="bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-200"
@@ -775,6 +780,8 @@ const HomePage = () => {
                                 Browse Courses
                                 <ArrowRight className="ml-2 h-5 w-5"/>
                             </Button>
+                            </Link>
+                            <Link href={"/about"}>
                             <Button
                                 variant="default"
                                 size="lg"
@@ -782,6 +789,7 @@ const HomePage = () => {
                             >
                                 Learn More
                             </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>

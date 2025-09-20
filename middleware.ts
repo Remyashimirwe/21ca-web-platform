@@ -18,16 +18,20 @@ const isInstructorRoute = createRouteMatcher(['/instructor(.*)'])
 export default clerkMiddleware(async (auth, req) => {
     // Restrict admin routes to users with admin role
     if (isAdminRoute(req)) {
-        await auth.protect((has) => {
-            return has({ role: 'admin' })
-        })
+        const { sessionClaims } = await auth.protect()
+        const userRole = (sessionClaims?.publicMetadata as any)?.role
+        if (userRole !== 'admin') {
+            throw new Error('Unauthorized: Admin access required')
+        }
     }
 
     // Restrict instructor routes to users with instructor or admin role
     if (isInstructorRoute(req)) {
-        await auth.protect((has) => {
-            return has({ role: 'instructor' }) || has({ role: 'admin' })
-        })
+        const { sessionClaims } = await auth.protect()
+        const userRole = (sessionClaims?.publicMetadata as any)?.role
+        if (userRole !== 'instructor' && userRole !== 'admin') {
+            throw new Error('Unauthorized: Instructor access required')
+        }
     }
 
     // Protect all private routes (except partner dashboard which is public)
