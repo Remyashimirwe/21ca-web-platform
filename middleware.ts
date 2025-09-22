@@ -12,29 +12,8 @@ const isPublicRoute = createRouteMatcher([
     '/partner/dashboard' // Partner dashboard is public
 ])
 
-const isAdminRoute = createRouteMatcher(['/admin(.*)'])
-const isInstructorRoute = createRouteMatcher(['/instructor(.*)'])
-
 export default clerkMiddleware(async (auth, req) => {
-    // Restrict admin routes to users with admin role
-    if (isAdminRoute(req)) {
-        const { sessionClaims } = await auth.protect()
-        const userRole = (sessionClaims?.publicMetadata as any)?.role
-        if (userRole !== 'admin') {
-            throw new Error('Unauthorized: Admin access required')
-        }
-    }
-
-    // Restrict instructor routes to users with instructor or admin role
-    if (isInstructorRoute(req)) {
-        const { sessionClaims } = await auth.protect()
-        const userRole = (sessionClaims?.publicMetadata as any)?.role
-        if (userRole !== 'instructor' && userRole !== 'admin') {
-            throw new Error('Unauthorized: Instructor access required')
-        }
-    }
-
-    // Protect all private routes (except partner dashboard which is public)
+    // Only protect non-public routes, let pages handle role-based access
     if (!isPublicRoute(req)) {
         await auth.protect()
     }
