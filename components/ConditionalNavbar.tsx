@@ -9,7 +9,9 @@ export default function ConditionalNavbar() {
   // List of routes where navbar should NOT appear
   const hiddenRoutes = [
     '/admin',
-    '/dashboard'
+    '/dashboard',
+    '/sign-in',
+    '/sign-up'
   ];
   
   // Check if current path starts with any of the hidden routes
