@@ -1,12 +1,34 @@
+// app/api/courses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
     try {
         const { userId } = await auth();
-        if (!userId) {
+        const clerkUser = await currentUser();
+        
+        if (!userId || !clerkUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Sync or get user from database
+        let dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        });
+
+        // If user doesn't exist in DB, create them
+        if (!dbUser) {
+            dbUser = await prisma.user.create({
+                data: {
+                    clerkId: userId,
+                    email: clerkUser.emailAddresses[0]?.emailAddress || '',
+                    firstName: clerkUser.firstName || '',
+                    lastName: clerkUser.lastName || '',
+                    imageUrl: clerkUser.imageUrl || '',
+                    role: (clerkUser.publicMetadata?.role as any) || 'USER'
+                }
+            });
         }
 
         const body = await req.json();
@@ -41,7 +63,7 @@ export async function POST(req: NextRequest) {
         const course = await prisma.course.create({
             data: {
                 title,
-                slug: `${slug}-${Date.now()}`, // Ensure uniqueness
+                slug: `${slug}-${Date.now()}`,
                 shortDescription,
                 description,
                 thumbnail,
@@ -60,7 +82,7 @@ export async function POST(req: NextRequest) {
                 status,
                 isPublished: status === 'PUBLISHED',
                 publishedAt: status === 'PUBLISHED' ? new Date() : null,
-                instructorId: userId,
+                instructorId: dbUser.id, // Use DB user ID, not Clerk ID
                 modules: {
                     create: modules.map((module: any, moduleIndex: number) => ({
                         title: module.title,
@@ -106,7 +128,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('Error creating course:', error);
         return NextResponse.json(
-            { error: 'Failed to create course' },
+            { error: 'Failed to create course', details: error },
             { status: 500 }
         );
     }

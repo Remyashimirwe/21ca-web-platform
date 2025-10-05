@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
@@ -30,6 +30,14 @@ export const metadata: Metadata = {
     },
 };
 
+// Add viewport configuration to prevent mobile zoom
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,6 +46,10 @@ export default function RootLayout({
   return (
       <ClerkProvider>
           <html lang="en" suppressHydrationWarning>
+          <head>
+              {/* Fallback viewport meta tag for older browsers */}
+              <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+          </head>
           <body
               className={`${geistSans.variable} ${geistMono.variable} antialiased`}
           >

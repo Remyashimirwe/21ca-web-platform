@@ -1,10 +1,9 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import CreateCourse from '@/components/courses/CreateCourse';
+import EarningsPage from '@/components/instructor/EarningsPage';
 
-export default async function CreateCoursePage() {
-
+export default async function InstructorEarningsPage() {
     const { userId } = await auth();
     const user = await currentUser();
 
@@ -16,11 +15,10 @@ export default async function CreateCoursePage() {
     if (userRole !== 'instructor' && userRole !== 'admin') {
         redirect('/dashboard');
     }
-    
 
     return (
         <DashboardLayout>
-            <CreateCourse />
+            <EarningsPage />
         </DashboardLayout>
     );
 }
