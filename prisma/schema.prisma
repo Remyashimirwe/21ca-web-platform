@@ -1,14 +1,425 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // or "mysql", "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// User model - syncs with Clerk
 model User {
-  id    Int    @id @default(autoincrement())
-  email String @unique
-  name  String?
+  id               String   @id @default(cuid())
+  clerkId          String   @unique
+  email            String   @unique
+  firstName        String?
+  lastName         String?
+  imageUrl         String?
+  role             Role     @default(USER)
+  bio              String?
+  title            String?
+  website          String?
+  socialLinks      Json?
+  isActive         Boolean  @default(true)
+  emailNotifications Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relationships
+  instructedCourses Course[]
+  enrollments      Enrollment[]
+  reviews          Review[]
+  payments         Payment[]
+  notifications    Notification[]
+  messages         Message[] @relation("UserMessages")
+  sentMessages     Message[] @relation("SentMessages")
+  assignments      Assignment[]
+  submissions      Submission[]
+  certificates     Certificate[]
+  
+  @@map("users")
+}
+
+enum Role {
+  USER
+  INSTRUCTOR  
+  ADMIN
+  PARTNER
+}
+
+// Course model
+model Course {
+  id              String      @id @default(cuid())
+  title           String
+  slug            String      @unique
+  description     String
+  shortDescription String?
+  thumbnail       String?
+  price           Decimal     @default(0)
+  discountPrice   Decimal?
+  currency        String      @default("USD")
+  language        String      @default("en")
+  level           CourseLevel @default(BEGINNER)
+  duration        Int?        // in minutes
+  status          CourseStatus @default(DRAFT)
+  isPublished     Boolean     @default(false)
+  isFeatured      Boolean     @default(false)
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  
+  // Course structure
+  objectives      String[]    // learning objectives
+  requirements    String[]    // prerequisites
+  targetAudience  String[]    // who this course is for
+  
+  // Statistics
+  enrollmentCount Int         @default(0)
+  averageRating   Decimal?    @default(0)
+  totalRatings    Int         @default(0)
+  
+  // Timestamps
+  publishedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relationships
+  instructor      User        @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructorId    String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  modules         Module[]
+  enrollments     Enrollment[]
+  reviews         Review[]
+  payments        Payment[]
+  assignments     Assignment[]
+  certificates    Certificate[]
+  tags            CourseTag[]
+  
+  @@map("courses")
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum CourseStatus {
+  DRAFT
+  UNDER_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+// Category model
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  courses     Course[]
+  
+  @@map("categories")
+}
+
+// Tag model
+model Tag {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  slug      String      @unique
+  color     String?
+  createdAt DateTime    @default(now())
+
+  // Relationships
+  courses   CourseTag[]
+  
+  @@map("tags")
+}
+
+// Many-to-many relationship between Course and Tag
+model CourseTag {
+  id       String @id @default(cuid())
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId    String
+
+  @@unique([courseId, tagId])
+  @@map("course_tags")
+}
+
+// Module model (course sections)
+model Module {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId    String
+  lessons     Lesson[]
+  
+  @@map("modules")
+}
+
+// Lesson model
+model Lesson {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  content     String?     // rich text content
+  videoUrl    String?
+  videoDuration Int?      // in seconds
+  type        LessonType  @default(VIDEO)
+  sortOrder   Int         @default(0)
+  isPublished Boolean     @default(false)
+  isFree      Boolean     @default(false)
+  resources   Json?       // downloadable resources
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relationships
+  module      Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId    String
+  progress    LessonProgress[]
+  
+  @@map("lessons")
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+  QUIZ
+  ASSIGNMENT
+  LIVE_SESSION
+}
+
+// Student enrollment
+model Enrollment {
+  id            String           @id @default(cuid())
+  enrolledAt    DateTime         @default(now())
+  completedAt   DateTime?
+  progress      Int              @default(0) // percentage
+  status        EnrollmentStatus @default(ACTIVE)
+  currentLesson String?          // current lesson ID
+  
+  // Relationships
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId      String
+  lessonProgress LessonProgress[]
+  
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  SUSPENDED
+}
+
+// Track lesson progress for each enrollment
+model LessonProgress {
+  id           String     @id @default(cuid())
+  isCompleted  Boolean    @default(false)
+  watchTime    Int        @default(0) // in seconds
+  completedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relationships
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId     String
+  
+  @@unique([enrollmentId, lessonId])
+  @@map("lesson_progress")
+}
+
+// Course reviews
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5 stars
+  comment   String?
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  
+  @@unique([userId, courseId])
+  @@map("reviews")
+}
+
+// Payment tracking
+model Payment {
+  id              String        @id @default(cuid())
+  amount          Decimal
+  currency        String        @default("USD")
+  paymentMethod   String        // "stripe", "paypal", "mtn_momo", etc.
+  paymentIntentId String?       // Stripe payment intent ID
+  status          PaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relationships
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  course          Course        @relation(fields: [courseId], references: [id])
+  courseId        String
+  
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// Assignments
+model Assignment {
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  instructions String
+  maxPoints   Int              @default(100)
+  dueDate     DateTime?
+  isPublished Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relationships
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId    String
+  creator     User             @relation(fields: [creatorId], references: [id])
+  creatorId   String
+  submissions Submission[]
+  
+  @@map("assignments")
+}
+
+// Assignment submissions
+model Submission {
+  id          String           @id @default(cuid())
+  content     String
+  attachments Json?            // file URLs
+  points      Int?
+  feedback    String?
+  status      SubmissionStatus @default(SUBMITTED)
+  submittedAt DateTime         @default(now())
+  gradedAt    DateTime?
+
+  // Relationships
+  assignment  Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignmentId String
+  student     User             @relation(fields: [studentId], references: [id])
+  studentId   String
+  
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  GRADED
+  NEEDS_REVISION
+  LATE
+}
+
+// Certificates
+model Certificate {
+  id          String   @id @default(cuid())
+  certificateId String @unique // public certificate ID
+  issuedAt    DateTime @default(now())
+  expiresAt   DateTime?
+  isRevoked   Boolean  @default(false)
+  
+  // Relationships
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  course      Course   @relation(fields: [courseId], references: [id])
+  courseId    String
+  
+  @@unique([userId, courseId])
+  @@map("certificates")
+}
+
+// Notifications
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now())
+
+  // Relationships
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  COURSE_UPDATE
+  ASSIGNMENT
+  PAYMENT
+  CERTIFICATE
+}
+
+// Messages/Chat
+model Message {
+  id        String      @id @default(cuid())
+  content   String
+  isRead    Boolean     @default(false)
+  type      MessageType @default(DIRECT)
+  createdAt DateTime    @default(now())
+
+  // Relationships
+  recipient User        @relation("UserMessages", fields: [recipientId], references: [id])
+  recipientId String
+  sender    User        @relation("SentMessages", fields: [senderId], references: [id])
+  senderId  String
+  
+  @@map("messages")
+}
+
+enum MessageType {
+  DIRECT
+  COURSE_DISCUSSION
+  SUPPORT
 }
