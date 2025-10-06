@@ -66,59 +66,11 @@ interface Lesson {
 }
 
 const CreateCourse = () => {
-    // Add this state at the top of CreateCourse component
-const [uploading, setUploading] = useState(false);
-const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
-
-// Add this function for image upload
-const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
-        return;
-    }
-
-    try {
-        setUploading(true);
-        
-        // For now, create a preview URL (you'll replace this with actual upload)
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const result = reader.result as string;
-            setThumbnailPreview(result);
-            handleInputChange('thumbnail', result);
-        };
-        reader.readAsDataURL(file);
-
-        // TODO: Replace with actual upload to Cloudinary/S3
-        // const formData = new FormData();
-        // formData.append('file', file);
-        // const response = await fetch('/api/upload', {
-        //     method: 'POST',
-        //     body: formData
-        // });
-        // const data = await response.json();
-        // handleInputChange('thumbnail', data.url);
-        
-    } catch (error) {
-        console.error('Upload failed:', error);
-        alert('Failed to upload image');
-    } finally {
-        setUploading(false);
-    }
-};
     const { user } = useUser();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
     const [currentStep, setCurrentStep] = useState(1);
     const [categories, setCategories] = useState<any[]>([]);
     const [availableTags, setAvailableTags] = useState<any[]>([]);
@@ -283,7 +235,66 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         }));
     };
 
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+
+        try {
+            setUploading(true);
+            
+            // Create a preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setThumbnailPreview(result);
+                handleInputChange('thumbnail', result);
+            };
+            reader.readAsDataURL(file);
+            
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Failed to upload image');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const validateCourseData = () => {
+        // Basic validation
+        if (!courseData.title.trim()) {
+            alert('Please enter a course title');
+            return false;
+        }
+        if (!courseData.categoryId) {
+            alert('Please select a category');
+            return false;
+        }
+        if (!courseData.shortDescription.trim()) {
+            alert('Please enter a short description');
+            return false;
+        }
+        if (modules.length === 0 || !modules[0].title.trim()) {
+            alert('Please add at least one module');
+            return false;
+        }
+        return true;
+    };
+
     const saveDraft = async () => {
+        if (!validateCourseData()) return;
+
         setLoading(true);
         try {
             const response = await fetch('/api/courses', {
@@ -296,18 +307,40 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 })
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                const course = await response.json();
-                router.push(`/instructor/courses/${course.id}`);
+                alert('Course saved as draft successfully!');
+                router.push(`/instructor/courses`);
+            } else {
+                alert(`Failed to save draft: ${data.error || 'Unknown error'}`);
+                console.error('Error:', data);
             }
         } catch (error) {
             console.error('Failed to save draft:', error);
+            alert('Failed to save draft. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     const publishCourse = async () => {
+        if (!validateCourseData()) return;
+
+        // Additional validation for publishing
+        if (!courseData.description.trim()) {
+            alert('Please enter a full description before publishing');
+            return;
+        }
+        if (!courseData.thumbnail) {
+            alert('Please upload a course thumbnail before publishing');
+            return;
+        }
+        if (courseData.objectives.filter(obj => obj.trim()).length === 0) {
+            alert('Please add at least one learning objective');
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await fetch('/api/courses', {
@@ -320,12 +353,18 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                 })
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                const course = await response.json();
-                router.push(`/instructor/courses/${course.id}`);
+                alert('Course submitted for review successfully!');
+                router.push(`/instructor/courses`);
+            } else {
+                alert(`Failed to submit course: ${data.error || 'Unknown error'}`);
+                console.error('Error:', data);
             }
         } catch (error) {
             console.error('Failed to publish course:', error);
+            alert('Failed to submit course. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -484,67 +523,67 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                                 </div>
                             </div>
 
-<div className="space-y-2">
-    <label className="text-sm font-medium">Course Thumbnail *</label>
-    <div className="border-2 border-dashed border-border rounded-lg overflow-hidden">
-        {thumbnailPreview ? (
-            <div className="relative">
-                <img 
-                    src={thumbnailPreview} 
-                    alt="Course thumbnail" 
-                    className="w-full h-48 object-cover"
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => document.getElementById('thumbnail-upload')?.click()}
-                    >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Change Image
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                            setThumbnailPreview('');
-                            handleInputChange('thumbnail', '');
-                        }}
-                    >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Remove
-                    </Button>
-                </div>
-            </div>
-        ) : (
-            <div className="p-8 text-center">
-                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-2">Upload course thumbnail</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                    Recommended: 1280x720px, Max 5MB (JPG, PNG)
-                </p>
-                <Button 
-                    type="button"
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => document.getElementById('thumbnail-upload')?.click()}
-                    disabled={uploading}
-                >
-                    {uploading ? 'Uploading...' : 'Choose File'}
-                </Button>
-            </div>
-        )}
-        <input
-            id="thumbnail-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-        />
-    </div>
-</div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Course Thumbnail</label>
+                                <div className="border-2 border-dashed border-border rounded-lg overflow-hidden">
+                                    {thumbnailPreview ? (
+                                        <div className="relative group">
+                                            <img 
+                                                src={thumbnailPreview} 
+                                                alt="Course thumbnail" 
+                                                className="w-full h-48 object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    onClick={() => document.getElementById('thumbnail-upload')?.click()}
+                                                >
+                                                    <Upload className="h-4 w-4 mr-2" />
+                                                    Change
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    onClick={() => {
+                                                        setThumbnailPreview('');
+                                                        handleInputChange('thumbnail', '');
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="p-8 text-center">
+                                            <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                            <p className="text-muted-foreground mb-2">Upload course thumbnail</p>
+                                            <p className="text-xs text-muted-foreground mb-4">
+                                                Recommended: 1280x720px, Max 5MB
+                                            </p>
+                                            <Button 
+                                                type="button"
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={() => document.getElementById('thumbnail-upload')?.click()}
+                                                disabled={uploading}
+                                            >
+                                                {uploading ? 'Uploading...' : 'Choose File'}
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <input
+                                        id="thumbnail-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="hidden"
+                                    />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
