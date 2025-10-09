@@ -137,9 +137,9 @@ const MyCourses = () => {
             case 'students':
                 return b.enrollmentCount - a.enrollmentCount;
             case 'rating':
-                return (b.averageRating || 0) - (a.averageRating || 0);
+                return (Number(b.averageRating) || 0) - (Number(a.averageRating) || 0);
             case 'revenue':
-                return (b.price * b.enrollmentCount) - (a.price * a.enrollmentCount);
+                return (Number(b.price) * b.enrollmentCount) - (Number(a.price) * a.enrollmentCount);
             case 'createdAt':
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             default:
@@ -269,7 +269,9 @@ const MyCourses = () => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                                <p className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</p>
+                                <p className="text-2xl font-bold">
+                                    {stats.averageRating ? Number(stats.averageRating).toFixed(1) : '0.0'}
+                                </p>
                                 <p className="text-xs text-yellow-600 flex items-center gap-1">
                                     <Star className="h-3 w-3" />
                                     {stats.totalCourses} courses rated
@@ -484,7 +486,12 @@ const MyCourses = () => {
                                         <div className="text-center">
                                             <div className="flex items-center justify-center gap-1 text-muted-foreground">
                                                 <Star className="h-3 w-3" />
-                                                <span>{course.averageRating?.toFixed(1) || 'N/A'}</span>
+                                                <span>
+                                                    {course.averageRating 
+                                                        ? Number(course.averageRating).toFixed(1) 
+                                                        : 'N/A'
+                                                    }
+                                                </span>
                                             </div>
                                             <div className="text-xs text-muted-foreground">Rating</div>
                                         </div>

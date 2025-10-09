@@ -15,7 +15,8 @@ import {
     X,
     Check,
     CheckCheck,
-    MessageSquare
+    MessageSquare,
+    Plus
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import router from 'next/router';
 
 interface Conversation {
     id: string;
@@ -213,25 +215,34 @@ const MessagesPage = () => {
             )}>
                 <div className="h-full flex flex-col">
                     {/* Search Header */}
-                    <div className="p-4 border-b space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">Messages</h2>
-                            {totalUnread > 0 && (
-                                <Badge variant="destructive" className="rounded-full">
-                                    {totalUnread}
-                                </Badge>
-                            )}
-                        </div>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search conversations..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-                    </div>
+<div className="p-4 border-b space-y-4">
+    <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Messages</h2>
+        <div className="flex items-center gap-2">
+            {totalUnread > 0 && (
+                <Badge variant="destructive" className="rounded-full">
+                    {totalUnread}
+                </Badge>
+            )}
+            <Button 
+                size="sm"
+                onClick={() => router.push('/messages/new')}
+            >
+                <Plus className="h-4 w-4 mr-2" />
+                New Message
+            </Button>
+        </div>
+    </div>
+    <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+        />
+    </div>
+</div>
 
                     {/* Conversations List */}
                     <div className="flex-1 overflow-y-auto">

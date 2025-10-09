@@ -1,4 +1,3 @@
-// app/api/instructor/courses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
@@ -7,12 +6,11 @@ export async function GET(req: NextRequest) {
     try {
         const { userId } = await auth();
         const clerkUser = await currentUser();
-        
+
         if (!userId || !clerkUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Get or create user in database
         let dbUser = await prisma.user.findUnique({
             where: { clerkId: userId }
         });
@@ -22,7 +20,7 @@ export async function GET(req: NextRequest) {
             const userRole = clerkRole.toUpperCase();
             const validRoles = ['USER', 'INSTRUCTOR', 'ADMIN', 'PARTNER'];
             const finalRole = validRoles.includes(userRole) ? userRole : 'USER';
-            
+
             dbUser = await prisma.user.create({
                 data: {
                     clerkId: userId,
@@ -35,42 +33,21 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        const courses = await prisma.course.findMany({
+        const notifications = await prisma.notification.findMany({
             where: {
-                instructorId: dbUser.id
-            },
-            include: {
-                category: {
-                    select: {
-                        name: true,
-                        color: true
-                    }
-                },
-                modules: {
-                    include: {
-                        lessons: {
-                            select: {
-                                id: true,
-                                title: true
-                            }
-                        }
-                    },
-                    orderBy: {
-                        sortOrder: 'asc'
-                    }
-                }
+                userId: dbUser.id
             },
             orderBy: {
-                updatedAt: 'desc'
-            }
+                createdAt: 'desc'
+            },
+            take: 50
         });
 
-        console.log(`Found ${courses.length} courses for instructor ${dbUser.id}`);
-        return NextResponse.json(courses);
+        return NextResponse.json(notifications);
     } catch (error) {
-        console.error('Error fetching instructor courses:', error);
+        console.error('Error fetching notifications:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch courses' },
+            { error: 'Failed to fetch notifications' },
             { status: 500 }
         );
     }

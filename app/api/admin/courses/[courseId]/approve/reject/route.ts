@@ -1,6 +1,8 @@
+// app/api/admin/courses/[courseId]/reject/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(
     req: NextRequest,
@@ -26,10 +28,22 @@ export async function POST(
             where: { id: params.courseId },
             data: {
                 status: 'DRAFT'
+            },
+            include: {
+                instructor: true
             }
         });
 
-        // TODO: Send notification to instructor with rejection reason
+        // Send notification to instructor with rejection reason
+        await createNotification({
+            userId: course.instructor.id,
+            title: 'Course Needs Revision',
+            message: `Your course "${course.title}" requires some changes. Reason: ${reason}`,
+            type: 'WARNING',
+            actionUrl: `/instructor/courses/${course.id}/edit`
+        });
+
+        console.log(`Course ${course.id} rejected and notification sent to instructor ${course.instructor.id}`);
 
         return NextResponse.json(course);
     } catch (error) {
