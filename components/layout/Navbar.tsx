@@ -436,7 +436,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                         </PopoverContent>
                     </Popover>
 
-                    {/* User Profile Dropdown */}
+                    {/* User Profile Dropdown */} 
                     <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
                         <DropdownMenuTrigger asChild>
                             <Button 
