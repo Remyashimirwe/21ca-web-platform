@@ -137,6 +137,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
             roles: ['admin']
         },
         {
+            title: 'Course Review',
+            href: '/admin/courses/review',
+            icon: FileText,
+            roles: ['admin']
+        },
+        {
             title: 'Payments',
             href: '/admin/payments',
             icon: DollarSign,
@@ -145,7 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
         {
             title: 'Reports',
             href: '/admin/reports',
-            icon: FileText,
+            icon: BarChart3,
             roles: ['admin']
         },
         {
