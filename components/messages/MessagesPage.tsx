@@ -81,9 +81,16 @@ const MessagesPage = () => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        fetchConversations();
+        // Initial fetch with loading indicator
+        const initialFetch = async () => {
+            setLoading(true);
+            await fetchConversations();
+            setLoading(false);
+        };
         
-        // Poll for new conversations every 10 seconds
+        initialFetch();
+        
+        // Silent polling every 10 seconds
         const interval = setInterval(fetchConversations, 10000);
         
         // Auto-select conversation if 'to' parameter is provided
@@ -110,33 +117,51 @@ const MessagesPage = () => {
     }, [selectedConversation]);
 
     useEffect(() => {
-        scrollToBottom();
+        // Only auto-scroll if user hasn't scrolled up manually
+        const container = messagesEndRef.current?.parentElement;
+        if (container) {
+            const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+            if (isScrolledToBottom) {
+                scrollToBottom();
+            }
+        }
     }, [messages]);
 
     const fetchConversations = async () => {
         try {
-            setLoading(true);
+            // Silent fetch - don't set loading state on polls
             const response = await fetch('/api/messages/conversations');
             const data = await response.json();
-            // Ensure data is an array before setting
-            setConversations(Array.isArray(data) ? data : []);
+            
+            // Only update if conversations changed
+            const newConversations = Array.isArray(data) ? data : [];
+            setConversations(prev => {
+                if (JSON.stringify(prev) !== JSON.stringify(newConversations)) {
+                    return newConversations;
+                }
+                return prev;
+            });
         } catch (error) {
             console.error('Failed to fetch conversations:', error);
-            setConversations([]); // Set empty array on error
-        } finally {
-            setLoading(false);
         }
     };
 
     const fetchMessages = async (conversationId: string) => {
         try {
+            // Silent fetch - no loading indicators
             const response = await fetch(`/api/messages/${conversationId}`);
             const data = await response.json();
-            // Ensure data is an array before setting
-            setMessages(Array.isArray(data) ? data : []);
+            
+            // Only update if messages changed
+            const newMessages = Array.isArray(data) ? data : [];
+            setMessages(prev => {
+                if (JSON.stringify(prev) !== JSON.stringify(newMessages)) {
+                    return newMessages;
+                }
+                return prev;
+            });
         } catch (error) {
             console.error('Failed to fetch messages:', error);
-            setMessages([]); // Set empty array on error
         }
     };
 
