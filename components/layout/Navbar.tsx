@@ -436,7 +436,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                         </PopoverContent>
                     </Popover>
 
-                    {/* User Profile Dropdown */} 
+                    {/* User Profile Dropdown */}
                     <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
                         <DropdownMenuTrigger asChild>
                             <Button 
@@ -536,7 +536,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                             >
                                 <LogOut className="mr-2 h-4 w-4" />
                                 Sign Out
-                                
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

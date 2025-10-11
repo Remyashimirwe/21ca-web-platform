@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
     Send,
     Search,
@@ -15,8 +15,8 @@ import {
     X,
     Check,
     CheckCheck,
-    MessageSquare,
-    Plus
+    Plus,
+    MessageSquare
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import router from 'next/router';
 
 interface Conversation {
     id: string;
@@ -66,6 +65,7 @@ interface Message {
 const MessagesPage = () => {
     const { user } = useUser();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const toUserId = searchParams.get('to');
     
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -83,17 +83,29 @@ const MessagesPage = () => {
     useEffect(() => {
         fetchConversations();
         
+        // Poll for new conversations every 10 seconds
+        const interval = setInterval(fetchConversations, 10000);
+        
         // Auto-select conversation if 'to' parameter is provided
         if (toUserId) {
             setSelectedConversation(toUserId);
             setShowMobileChat(true);
         }
+        
+        return () => clearInterval(interval);
     }, [toUserId]);
 
     useEffect(() => {
         if (selectedConversation) {
             fetchMessages(selectedConversation);
             markAsRead(selectedConversation);
+            
+            // Poll for new messages every 3 seconds when a conversation is selected
+            const interval = setInterval(() => {
+                fetchMessages(selectedConversation);
+            }, 3000);
+            
+            return () => clearInterval(interval);
         }
     }, [selectedConversation]);
 
@@ -120,9 +132,11 @@ const MessagesPage = () => {
         try {
             const response = await fetch(`/api/messages/${conversationId}`);
             const data = await response.json();
-            setMessages(data);
+            // Ensure data is an array before setting
+            setMessages(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch messages:', error);
+            setMessages([]); // Set empty array on error
         }
     };
 
@@ -197,14 +211,20 @@ const MessagesPage = () => {
         }
     };
 
-    const filteredConversations = conversations.filter(conv =>
-        `${conv.participant.firstName} ${conv.participant.lastName}`
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
-    );
+    const filteredConversations = Array.isArray(conversations) 
+        ? conversations.filter(conv =>
+            `${conv.participant?.firstName || ''} ${conv.participant?.lastName || ''}`
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase())
+        )
+        : [];
 
-    const selectedChat = conversations.find(c => c.participant.clerkId === selectedConversation);
-    const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+    const selectedChat = Array.isArray(conversations) 
+        ? conversations.find(c => c.participant?.clerkId === selectedConversation)
+        : null;
+    const totalUnread = Array.isArray(conversations) 
+        ? conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)
+        : 0;
 
     return (
         <div className="h-[calc(100vh-8rem)] flex gap-4">
@@ -215,34 +235,34 @@ const MessagesPage = () => {
             )}>
                 <div className="h-full flex flex-col">
                     {/* Search Header */}
-<div className="p-4 border-b space-y-4">
-    <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Messages</h2>
-        <div className="flex items-center gap-2">
-            {totalUnread > 0 && (
-                <Badge variant="destructive" className="rounded-full">
-                    {totalUnread}
-                </Badge>
-            )}
-            <Button 
-                size="sm"
-                onClick={() => router.push('/messages/new')}
-            >
-                <Plus className="h-4 w-4 mr-2" />
-                New Message
-            </Button>
-        </div>
-    </div>
-    <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-            placeholder="Search conversations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-        />
-    </div>
-</div>
+                    <div className="p-4 border-b space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Messages</h2>
+                            <div className="flex items-center gap-2">
+                                {totalUnread > 0 && (
+                                    <Badge variant="destructive" className="rounded-full">
+                                        {totalUnread}
+                                    </Badge>
+                                )}
+                                <Button 
+                                    size="sm"
+                                    onClick={() => router.push('/messages/new')}
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    New
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search conversations..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                    </div>
 
                     {/* Conversations List */}
                     <div className="flex-1 overflow-y-auto">
