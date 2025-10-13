@@ -1,3 +1,5 @@
+// app/api/instructor/stats/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
@@ -24,25 +26,39 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        // Total revenue
         const totalRevenue = courses.reduce((sum, course) => {
             return sum + course.payments.reduce((paymentSum, payment) => {
                 return paymentSum + Number(payment.amount);
             }, 0);
         }, 0);
 
+        // Total students
         const totalStudents = courses.reduce((sum, course) => {
             return sum + course.enrollmentCount;
         }, 0);
 
+        // Average rating
         const averageRating = courses.reduce((sum, course) => {
             return sum + (Number(course.averageRating) || 0);
-        }, 0) / courses.length || 0;
+        }, 0) / (courses.length || 1);
 
+        // Course counts
         const totalCourses = courses.length;
         const publishedCourses = courses.filter(c => c.isPublished).length;
         const draftCourses = courses.filter(c => c.status === 'DRAFT').length;
         const underReviewCourses = courses.filter(c => c.status === 'UNDER_REVIEW').length;
 
+        // New enrollments this week
+        const enrollments = courses.flatMap(c => c.enrollments);
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        const newThisWeek = enrollments.filter(e =>
+            new Date(e.enrolledAt) > oneWeekAgo
+        ).length;
+
+        // Return stats
         return NextResponse.json({
             totalRevenue,
             totalStudents,
@@ -50,8 +66,10 @@ export async function GET(req: NextRequest) {
             totalCourses,
             publishedCourses,
             draftCourses,
-            underReviewCourses
+            underReviewCourses,
+            newThisWeek
         });
+
     } catch (error) {
         console.error('Error fetching instructor stats:', error);
         return NextResponse.json(
