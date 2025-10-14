@@ -253,9 +253,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
                 <div className="flex items-center justify-between">
                     {!collapsed && (
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">21</span>
-                            </div>
+                            <img 
+                                src="/logo.png" 
+                                alt="21CA Logo" 
+                                className="w-8 h-8 object-contain"
+                            />
                             <div>
                                 <h2 className="font-bold text-foreground">21CA</h2>
                                 <p className="text-xs text-muted-foreground">Century Africa</p>

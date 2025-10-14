@@ -1,4 +1,3 @@
-// components/instructor/AnalyticsPage.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -119,19 +118,19 @@ const AnalyticsPage = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-                    <p className="text-muted-foreground">Track your course performance and student engagement</p>
+                    <h1 className="text-2xl font-bold">Analytics</h1>
+                    <p className="text-muted-foreground font-semibold ">Track your course performance and student engagement</p>
                 </div>
                 <div className="flex gap-2">
                     <select
                         value={timeframe}
                         onChange={(e) => setTimeframe(e.target.value)}
-                        className="px-3 py-2 border border-input rounded-md bg-background text-sm"
+                        className="px-3 py-2 border border-input rounded-md bg-background text-sm font-semibold "
                     >
-                        <option value="7d">Last 7 days</option>
-                        <option value="30d">Last 30 days</option>
-                        <option value="90d">Last 90 days</option>
-                        <option value="1y">Last year</option>
+                        <option value="7d" className='font-semibold'>Last 7 days</option>
+                        <option value="30d" className='font-semibold'>Last 30 days</option>
+                        <option value="90d" className='font-semibold'>Last 90 days</option>
+                        <option value="1y" className='font-semibold'>Last year</option>
                     </select>
                     <Button variant="outline">
                         <Download className="h-4 w-4 mr-2" />
