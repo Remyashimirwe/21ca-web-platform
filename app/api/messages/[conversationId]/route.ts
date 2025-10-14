@@ -4,10 +4,13 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { conversationId: string } }
+    context: { params: Promise<{ conversationId: string }> }
 ) {
     try {
+        // Await the params
+        const { conversationId } = await context.params;
         const { userId } = await auth();
+
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -17,7 +20,7 @@ export async function GET(
         });
 
         const otherUser = await prisma.user.findUnique({
-            where: { clerkId: params.conversationId }
+            where: { clerkId: conversationId }
         });
 
         if (!user || !otherUser) {
