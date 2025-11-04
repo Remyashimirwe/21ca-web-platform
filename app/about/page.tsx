@@ -643,13 +643,16 @@ const AboutPage = () => {
                                 Explore Our Programs
                                 <ArrowRight className="ml-2 h-5 w-5" />
                             </Button>
+                            <Link href={"pages/contact"}>
                             <Button
                                 variant="outline"
                                 size="lg"
                                 className="bg-white/10 border-white text-white hover:bg-white hover:text-slate-900 hover:scale-105 transition-all duration-200 px-8 py-4"
+
                             >
                                 Get In Touch
                             </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
