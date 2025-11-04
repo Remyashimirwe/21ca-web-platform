@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "seed": "tsx scripts/seed-categories.ts",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync-clerk-users": "tsx scripts/sync-clerk-users.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
