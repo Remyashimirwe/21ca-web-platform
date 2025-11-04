@@ -12,7 +12,8 @@ export default function ConditionalNavbar() {
     '/dashboard',
     '/sign-in',
     '/sign-up',
-    '/instructor'
+    '/instructor',
+    '/messages'
   ];
   
   // Check if current path starts with any of the hidden routes
