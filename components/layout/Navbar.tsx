@@ -17,13 +17,15 @@ import {
     Award,
     BookOpen,
     CreditCard,
-    ChevronDown,
     X,
-    Filter,
     Zap,
     Shield,
     GraduationCap,
-    HandHeart
+    HandHeart,
+    DollarSign,
+    AlertCircle,
+    CheckCheck,
+    Upload
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -54,13 +56,10 @@ interface Notification {
     id: string;
     title: string;
     message: string;
-    type: 'info' | 'success' | 'warning' | 'error';
-    timestamp: Date;
-    read: boolean;
-    action?: {
-        label: string;
-        href: string;
-    };
+    type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'COURSE_UPDATE' | 'ASSIGNMENT' | 'PAYMENT' | 'CERTIFICATE';
+    isRead: boolean;
+    actionUrl: string | null;
+    createdAt: Date;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) => {
@@ -74,48 +73,66 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notificationsLoading, setNotificationsLoading] = useState(true);
     
     const searchRef = useRef<HTMLInputElement>(null);
     
     const userRole = user?.publicMetadata?.role as string || 'user';
+
+    // Fetch notifications
+    useEffect(() => {
+        fetchNotifications();
+        
+        // Poll for new notifications every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchNotifications = async () => {
+        try {
+            setNotificationsLoading(true);
+            const response = await fetch('/api/notifications');
+            const data = await response.json();
+            setNotifications(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Failed to fetch notifications:', error);
+            setNotifications([]);
+        } finally {
+            setNotificationsLoading(false);
+        }
+    };
+
+    const markAsRead = async (notificationId: string) => {
+        try {
+            await fetch(`/api/notifications/${notificationId}/read`, {
+                method: 'POST'
+            });
+            setNotifications(prev =>
+                prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+            );
+        } catch (error) {
+            console.error('Failed to mark as read:', error);
+        }
+    };
+
+    const markAllAsRead = async () => {
+        try {
+            await fetch('/api/notifications/mark-all-read', {
+                method: 'POST'
+            });
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        } catch (error) {
+            console.error('Failed to mark all as read:', error);
+        }
+    };
 
     // Ensure component is mounted before accessing theme
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    // Mock notifications - replace with real data
-    const [notifications, setNotifications] = useState<Notification[]>([
-        {
-            id: '1',
-            title: 'New Course Available',
-            message: 'Check out the latest STEM course: "Advanced Robotics Workshop"',
-            type: 'info',
-            timestamp: new Date(Date.now() - 1000 * 60 * 30),
-            read: false,
-            action: { label: 'View Course', href: '/courses/advanced-robotics' }
-        },
-        {
-            id: '2',
-            title: 'Assignment Graded',
-            message: 'Your assignment "Solar Panel Design" has been graded. Score: 95%',
-            type: 'success',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-            read: false,
-            action: { label: 'View Grade', href: '/grades' }
-        },
-        {
-            id: '3',
-            title: 'Certificate Ready',
-            message: 'Your certificate for "Digital Financial Literacy" is ready for download',
-            type: 'success',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-            read: true,
-            action: { label: 'Download', href: '/certificates' }
-        }
-    ]);
-
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -132,18 +149,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
     };
 
     const handleNotificationClick = (notification: Notification) => {
-        setNotifications(prev => 
-            prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
-        );
+        if (!notification.isRead) {
+            markAsRead(notification.id);
+        }
         
-        if (notification.action) {
-            router.push(notification.action.href);
+        if (notification.actionUrl) {
+            router.push(notification.actionUrl);
             setNotificationsOpen(false);
         }
-    };
-
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     };
 
     const handleSignOut = async () => {
@@ -153,23 +166,37 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
 
     const getNotificationIcon = (type: Notification['type']) => {
         switch (type) {
-            case 'success': return '🎉';
-            case 'warning': return '⚠️';
-            case 'error': return '❌';
-            default: return '📢';
+            case 'COURSE_UPDATE':
+                return <BookOpen className="h-4 w-4 text-blue-500" />;
+            case 'ASSIGNMENT':
+                return <Upload className="h-4 w-4 text-purple-500" />;
+            case 'PAYMENT':
+                return <DollarSign className="h-4 w-4 text-green-500" />;
+            case 'CERTIFICATE':
+                return <Award className="h-4 w-4 text-yellow-500" />;
+            case 'SUCCESS':
+                return <CheckCheck className="h-4 w-4 text-green-500" />;
+            case 'WARNING':
+                return <AlertCircle className="h-4 w-4 text-orange-500" />;
+            case 'ERROR':
+                return <AlertCircle className="h-4 w-4 text-red-500" />;
+            default:
+                return <Bell className="h-4 w-4 text-blue-500" />;
         }
     };
 
-    const formatTimestamp = (timestamp: Date) => {
+    const formatTimestamp = (timestamp: Date | string) => {
         const now = new Date();
-        const diff = now.getTime() - timestamp.getTime();
+        const notifDate = new Date(timestamp);
+        const diff = now.getTime() - notifDate.getTime();
         const minutes = Math.floor(diff / (1000 * 60));
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
         if (minutes < 60) return `${minutes}m ago`;
         if (hours < 24) return `${hours}h ago`;
-        return `${days}d ago`;
+        if (days < 7) return `${days}d ago`;
+        return notifDate.toLocaleDateString();
     };
 
     const getRoleData = () => {
@@ -227,6 +254,9 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
     }, [searchFocused]);
 
     if (!mounted) return null;
+
+    // Get latest 5 notifications for preview
+    const previewNotifications = notifications.slice(0, 5);
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -292,7 +322,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                             </div>
                         </div>
                         
-                        {/* Search suggestions overlay - you can implement this */}
+                        {/* Search suggestions overlay */}
                         {searchFocused && searchQuery && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl p-2 z-50">
                                 <div className="text-sm text-muted-foreground p-2">
@@ -371,23 +401,30 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                                 )}
                             </div>
                             <div className="max-h-96 overflow-y-auto">
-                                {notifications.length === 0 ? (
+                                {notificationsLoading ? (
+                                    <div className="p-8 text-center">
+                                        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                                    </div>
+                                ) : previewNotifications.length === 0 ? (
                                     <div className="p-8 text-center text-muted-foreground">
                                         <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                         <p>No notifications yet</p>
                                     </div>
                                 ) : (
-                                    notifications.map((notification) => (
+                                    previewNotifications.map((notification) => (
                                         <div
                                             key={notification.id}
                                             className={cn(
                                                 "p-4 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors",
-                                                !notification.read && "bg-primary/5 border-l-4 border-l-primary"
+                                                !notification.isRead && "bg-primary/5 border-l-4 border-l-primary"
                                             )}
                                             onClick={() => handleNotificationClick(notification)}
                                         >
                                             <div className="flex gap-3">
-                                                <div className="flex-shrink-0 text-lg">
+                                                <div className={cn(
+                                                    'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                                                    !notification.isRead ? 'bg-primary/10' : 'bg-muted'
+                                                )}>
                                                     {getNotificationIcon(notification.type)}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -396,23 +433,14 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                                                             {notification.title}
                                                         </p>
                                                         <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
-                                                            {formatTimestamp(notification.timestamp)}
+                                                            {formatTimestamp(notification.createdAt)}
                                                         </span>
                                                     </div>
                                                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                                         {notification.message}
                                                     </p>
-                                                    {notification.action && (
-                                                        <Button
-                                                            variant="link"
-                                                            size="sm"
-                                                            className="p-0 h-auto mt-2 text-xs text-primary hover:text-primary/80"
-                                                        >
-                                                            {notification.action.label}
-                                                        </Button>
-                                                    )}
                                                 </div>
-                                                {!notification.read && (
+                                                {!notification.isRead && (
                                                     <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1" />
                                                 )}
                                             </div>
@@ -509,11 +537,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                             <DropdownMenuItem onClick={() => router.push('/messages')}>
                                 <MessageSquare className="mr-2 h-4 w-4" />
                                 Messages
-                                {unreadCount > 0 && (
-                                    <Badge variant="destructive" className="ml-auto text-xs">
-                                        {unreadCount}
-                                    </Badge>
-                                )}
                             </DropdownMenuItem>
                             
                             <DropdownMenuSeparator />
