@@ -313,7 +313,7 @@ const Navbar = () => {
                                 <Link href="/sign-in">
                                     <Button
                                         variant="ghost"
-                                        className="hidden lg:inline-flex items-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200"
+                                        className="hidden lg:inline-flex items-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200 border-2"
                                     >
                                         <User size={16} />
                                         <span>Sign In</span>
@@ -323,7 +323,7 @@ const Navbar = () => {
                                 {/* Sign Up Button */}
                                 <Link href="/sign-up">
                                     <Button
-                                        className="hidden lg:inline-flex hover:scale-105 active:scale-95 shadow-md hover:shadow-lg transition-all duration-200"
+                                        className="hidden lg:inline-flex hover:scale-105 active:scale-95 shadow-md hover:shadow-lg transition-all duration-200 border-2"
                                     >
                                         Sign Up
                                     </Button>
