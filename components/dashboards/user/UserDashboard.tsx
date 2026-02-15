@@ -1,4 +1,3 @@
-// components/dashboards/user/UserDashboard.tsx
 'use client';
 
 import React from 'react';
