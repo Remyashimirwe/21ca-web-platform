@@ -13,10 +13,16 @@ import {
     Award,
     AlertCircle,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    Sparkles,
+    BarChart3,
+    ShieldCheck,
+    MessageSquare,
+    ChevronRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const AdminDashboard = () => {
     const { user } = useUser();
@@ -40,6 +46,13 @@ const AdminDashboard = () => {
         supportTickets: 8,
         conversionRate: 12.5
     };
+
+    const insights = [
+        { label: 'Growth', value: '+18.4%', icon: ArrowUp, tone: 'text-emerald-500' },
+        { label: 'Engagement', value: '92%', icon: Sparkles, tone: 'text-violet-500' },
+        { label: 'Retention', value: '81%', icon: ShieldCheck, tone: 'text-sky-500' },
+        { label: 'Messages', value: '14', icon: MessageSquare, tone: 'text-amber-500' }
+    ];
 
     const recentActivity = [
         {
@@ -105,187 +118,221 @@ const AdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-background pt-20">
-            <div className="container mx-auto px-6 py-8">
-                {/* Welcome Section */}
-                <div className="mb-8">
-                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center justify-between flex-wrap gap-4">
-                            <div>
-                                <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
-                                    {getGreeting()}, {user?.firstName || 'Admin'}!
-                                </h1>
-                                <p className="text-lg text-muted-foreground">
-                                    Welcome to your admin dashboard. Here's what's happening today.
-                                </p>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                {/* Hero Section */}
+                <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-slate-50 via-white to-blue-50 p-8 shadow-sm dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.15),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.12),transparent_30%)]" />
+                    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-3xl">
+                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
+                                <Sparkles className="h-4 w-4" />
+                                Admin Command Center
                             </div>
-                            <div className="text-right">
-                                <div className="text-2xl font-bold text-primary">
-                                    {adminStats.newUsersToday}
+                            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+                                {getGreeting()}, {user?.firstName || 'Admin'}!
+                            </h1>
+                            <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
+                                Welcome to your enhanced dashboard. Track performance, manage users, and keep your platform running smoothly.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[460px]">
+                            {insights.map((item) => (
+                                <div key={item.label} className="rounded-2xl border border-border/60 bg-background/80 p-4 backdrop-blur">
+                                    <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted ${item.tone}`}>
+                                        <item.icon className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                                    <p className="mt-1 text-lg font-semibold text-foreground">{item.value}</p>
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                    New Users Today
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
-                </div>
+                </section>
 
-                {/* Key Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-blue-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Total Users
-                            </CardTitle>
-                            <Users className="h-4 w-4 text-blue-500" />
+                {/* Primary Metrics */}
+                <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+                    <Card className="border-l-4 border-l-blue-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                            <div>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+                                    {adminStats.totalUsers.toLocaleString()}
+                                </div>
+                            </div>
+                            <div className="rounded-xl bg-blue-500/10 p-3 text-blue-500">
+                                <Users className="h-5 w-5" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{adminStats.totalUsers.toLocaleString()}</div>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                            <p className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                                 <ArrowUp className="h-3 w-3" />
                                 +12% from last month
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-green-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Active Users
-                            </CardTitle>
-                            <UserCheck className="h-4 w-4 text-green-500" />
+                    <Card className="border-l-4 border-l-green-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                            <div>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Active Users</CardTitle>
+                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+                                    {adminStats.activeUsers.toLocaleString()}
+                                </div>
+                            </div>
+                            <div className="rounded-xl bg-green-500/10 p-3 text-green-500">
+                                <UserCheck className="h-5 w-5" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{adminStats.activeUsers.toLocaleString()}</div>
-                            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                                 <ArrowUp className="h-3 w-3" />
                                 +8% this week
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-purple-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Total Courses
-                            </CardTitle>
-                            <BookOpen className="h-4 w-4 text-purple-500" />
+                    <Card className="border-l-4 border-l-purple-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                            <div>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
+                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+                                    {adminStats.totalCourses}
+                                </div>
+                            </div>
+                            <div className="rounded-xl bg-purple-500/10 p-3 text-purple-500">
+                                <BookOpen className="h-5 w-5" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{adminStats.totalCourses}</div>
-                            <p className="text-xs text-purple-600 dark:text-purple-400">
-                                4 categories available
-                            </p>
+                            <p className="text-xs text-purple-600 dark:text-purple-400">4 categories available</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-yellow-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Total Revenue
-                            </CardTitle>
-                            <DollarSign className="h-4 w-4 text-yellow-500" />
+                    <Card className="border-l-4 border-l-amber-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                            <div>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+                                    ${adminStats.totalRevenue.toLocaleString()}
+                                </div>
+                            </div>
+                            <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500">
+                                <DollarSign className="h-5 w-5" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">${adminStats.totalRevenue.toLocaleString()}</div>
-                            <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                            <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                                 <ArrowUp className="h-3 w-3" />
                                 +23% from last month
                             </p>
                         </CardContent>
                     </Card>
-                </div>
+                </section>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Content */}
+                <section className="grid grid-cols-1 gap-8 xl:grid-cols-3">
                     {/* Recent Activity */}
-                    <div className="lg:col-span-2">
-                        <Card className="h-full">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
+                    <Card className="xl:col-span-2 shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle className="flex items-center gap-2 text-xl">
                                     <TrendingUp className="h-5 w-5 text-primary" />
                                     Recent Activity
                                 </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {recentActivity.map((activity, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-4 p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors duration-300"
-                                        >
-                                            <div className={`p-2 rounded-full bg-background ${activity.color}`}>
-                                                <activity.icon className="h-4 w-4" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-foreground">
-                                                    {activity.message}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {activity.time}
-                                                </p>
-                                            </div>
-                                            <Button size="sm" variant="ghost">
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Latest updates across your platform
+                                </p>
+                            </div>
+                            <Button variant="outline" size="sm" className="rounded-full">
+                                View all
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {recentActivity.map((activity, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
+                                    >
+                                        <div className={`rounded-xl bg-background p-3 ${activity.color}`}>
+                                            <activity.icon className="h-5 w-5" />
                                         </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-medium text-foreground">
+                                                {activity.message}
+                                            </p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                {activity.time}
+                                            </p>
+                                        </div>
+                                        <Button size="icon" variant="ghost" className="shrink-0 rounded-full">
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                    {/* Top Performing Courses */}
-                    <div>
-                        <Card className="h-full">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Award className="h-5 w-5 text-primary" />
-                                    Top Courses
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {topCourses.map((course, index) => (
-                                        <div
-                                            key={index}
-                                            className="p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors duration-300"
-                                        >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <h5 className="font-medium text-foreground text-sm line-clamp-2">
-                                                    {course.title}
-                                                </h5>
-                                                <div className={`p-1 rounded ${course.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                                                    {course.trend === 'up' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-xs text-muted-foreground">
-                                                    <span>{course.enrollments} enrolled</span>
-                                                    <span>{course.completion}% completion</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex-1 bg-background rounded-full h-1.5">
-                                                        <div
-                                                            className="bg-gradient-to-r from-green-400 to-blue-500 h-1.5 rounded-full"
-                                                            style={{ width: `${course.completion}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-xs font-medium text-yellow-500">
-                            {course.rating}★
-                          </span>
-                                                </div>
+                    {/* Top Courses */}
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <Award className="h-5 w-5 text-primary" />
+                                Top Courses
+                            </CardTitle>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Best performing learning content
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {topCourses.map((course, index) => (
+                                    <div
+                                        key={index}
+                                        className="rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
+                                    >
+                                        <div className="mb-3 flex items-start justify-between gap-3">
+                                            <h5 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
+                                                {course.title}
+                                            </h5>
+                                            <div className={`rounded-full p-1.5 ${course.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                                                {course.trend === 'up' ? (
+                                                    <ArrowUp className="h-3.5 w-3.5" />
+                                                ) : (
+                                                    <ArrowDown className="h-3.5 w-3.5" />
+                                                )}
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                <span>{course.enrollments} enrolled</span>
+                                                <span>{course.completion}% completion</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
+                                                    <div
+                                                        className="h-2 rounded-full bg-blue-500"
+                                                        style={{ width: `${course.completion}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs font-semibold text-yellow-500">
+                                                    {course.rating}★
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </section>
 
-                {/* Additional Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8 mb-8">
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                {/* Secondary Metrics */}
+                <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Course Completions
@@ -298,7 +345,7 @@ const AdminDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Support Tickets
@@ -311,7 +358,7 @@ const AdminDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Conversion Rate
@@ -320,14 +367,14 @@ const AdminDashboard = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold text-foreground">{adminStats.conversionRate}%</div>
-                            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                                 <ArrowUp className="h-3 w-3" />
                                 +2.1% this week
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
                                 Avg. Session Time
@@ -339,23 +386,46 @@ const AdminDashboard = () => {
                             <p className="text-xs text-blue-600 dark:text-blue-400">+3m from last week</p>
                         </CardContent>
                     </Card>
-                </div>
+                </section>
 
                 {/* Quick Actions */}
-                <Card>
+                <Card className="shadow-sm">
                     <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
+                        <CardTitle className="text-xl">Quick Actions</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            Jump into the most common admin tasks
+                        </p>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             {quickActions.map((action, index) => (
                                 <Button
                                     key={index}
-                                    className="h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
+                                    asChild={action.action === 'users'}
+                                    className="h-auto justify-start gap-3 rounded-2xl border border-border/60 bg-background p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
                                     variant="outline"
                                 >
-                                    <action.icon className="h-6 w-6 text-primary" />
-                                    <span>{action.title}</span>
+                                    {action.action === 'users' ? (
+                                        <Link href="/admin/users">
+                                            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                                <action.icon className="h-5 w-5" />
+                                            </span>
+                                            <span className="flex flex-col items-start">
+                                                <span className="text-sm font-semibold">{action.title}</span>
+                                                <span className="text-xs text-muted-foreground">Open section</span>
+                                            </span>
+                                        </Link>
+                                    ) : (
+                                        <>
+                                            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                                <action.icon className="h-5 w-5" />
+                                            </span>
+                                            <span className="flex flex-col items-start">
+                                                <span className="text-sm font-semibold">{action.title}</span>
+                                                <span className="text-xs text-muted-foreground">Open section</span>
+                                            </span>
+                                        </>
+                                    )}
                                 </Button>
                             ))}
                         </div>

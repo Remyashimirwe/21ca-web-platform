@@ -184,13 +184,13 @@ const CreateCourse = () => {
     };
 
     const updateModule = (index: number, field: keyof Module, value: any) => {
-        setModules(prev => prev.map((module, i) => 
+        setModules(prev => prev.map((module, i) =>
             i === index ? { ...module, [field]: value } : module
         ));
     };
 
     const addLesson = (moduleIndex: number) => {
-        setModules(prev => prev.map((module, i) => 
+        setModules(prev => prev.map((module, i) =>
             i === moduleIndex ? {
                 ...module,
                 lessons: [...module.lessons, {
@@ -207,7 +207,7 @@ const CreateCourse = () => {
     };
 
     const removeLesson = (moduleIndex: number, lessonIndex: number) => {
-        setModules(prev => prev.map((module, i) => 
+        setModules(prev => prev.map((module, i) =>
             i === moduleIndex ? {
                 ...module,
                 lessons: module.lessons.filter((_, j) => j !== lessonIndex)
@@ -216,10 +216,10 @@ const CreateCourse = () => {
     };
 
     const updateLesson = (moduleIndex: number, lessonIndex: number, field: keyof Lesson, value: any) => {
-        setModules(prev => prev.map((module, i) => 
+        setModules(prev => prev.map((module, i) =>
             i === moduleIndex ? {
                 ...module,
-                lessons: module.lessons.map((lesson, j) => 
+                lessons: module.lessons.map((lesson, j) =>
                     j === lessonIndex ? { ...lesson, [field]: value } : lesson
                 )
             } : module
@@ -229,7 +229,7 @@ const CreateCourse = () => {
     const handleTagToggle = (tagId: string) => {
         setCourseData(prev => ({
             ...prev,
-            tags: prev.tags.includes(tagId) 
+            tags: prev.tags.includes(tagId)
                 ? prev.tags.filter(id => id !== tagId)
                 : [...prev.tags, tagId]
         }));
@@ -253,7 +253,7 @@ const CreateCourse = () => {
 
         try {
             setUploading(true);
-            
+
             // Create a preview URL
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -262,7 +262,7 @@ const CreateCourse = () => {
                 handleInputChange('thumbnail', result);
             };
             reader.readAsDataURL(file);
-            
+
         } catch (error) {
             console.error('Upload failed:', error);
             alert('Failed to upload image');
@@ -393,8 +393,8 @@ const CreateCourse = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => router.push('/instructor/courses')}
                     >
@@ -407,8 +407,8 @@ const CreateCourse = () => {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         onClick={saveDraft}
                         disabled={loading}
                     >
@@ -434,7 +434,7 @@ const CreateCourse = () => {
                                 )} onClick={() => setCurrentStep(step.id)}>
                                     <div className={cn(
                                         "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                                        currentStep === step.id 
+                                        currentStep === step.id
                                             ? "bg-primary text-primary-foreground"
                                             : currentStep > step.id
                                             ? "bg-primary/20 text-primary"
@@ -528,9 +528,9 @@ const CreateCourse = () => {
                                 <div className="border-2 border-dashed border-border rounded-lg overflow-hidden">
                                     {thumbnailPreview ? (
                                         <div className="relative group">
-                                            <img 
-                                                src={thumbnailPreview} 
-                                                alt="Course thumbnail" 
+                                            <img
+                                                src={thumbnailPreview}
+                                                alt="Course thumbnail"
                                                 className="w-full h-48 object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -564,9 +564,9 @@ const CreateCourse = () => {
                                             <p className="text-xs text-muted-foreground mb-4">
                                                 Recommended: 1280x720px, Max 5MB
                                             </p>
-                                            <Button 
+                                            <Button
                                                 type="button"
-                                                variant="outline" 
+                                                variant="outline"
                                                 size="sm"
                                                 onClick={() => document.getElementById('thumbnail-upload')?.click()}
                                                 disabled={uploading}
@@ -653,8 +653,8 @@ const CreateCourse = () => {
                                                 onChange={(e) => handleArrayFieldChange('objectives', index, e.target.value)}
                                             />
                                             {courseData.objectives.length > 1 && (
-                                                <Button 
-                                                    variant="ghost" 
+                                                <Button
+                                                    variant="ghost"
                                                     size="sm"
                                                     onClick={() => removeArrayField('objectives', index)}
                                                 >
@@ -663,8 +663,8 @@ const CreateCourse = () => {
                                             )}
                                         </div>
                                     ))}
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         size="sm"
                                         onClick={() => addArrayField('objectives')}
                                     >
@@ -684,8 +684,8 @@ const CreateCourse = () => {
                                                 onChange={(e) => handleArrayFieldChange('requirements', index, e.target.value)}
                                             />
                                             {courseData.requirements.length > 1 && (
-                                                <Button 
-                                                    variant="ghost" 
+                                                <Button
+                                                    variant="ghost"
                                                     size="sm"
                                                     onClick={() => removeArrayField('requirements', index)}
                                                 >
@@ -694,8 +694,8 @@ const CreateCourse = () => {
                                             )}
                                         </div>
                                     ))}
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         size="sm"
                                         onClick={() => addArrayField('requirements')}
                                     >
@@ -715,8 +715,8 @@ const CreateCourse = () => {
                                                 onChange={(e) => handleArrayFieldChange('targetAudience', index, e.target.value)}
                                             />
                                             {courseData.targetAudience.length > 1 && (
-                                                <Button 
-                                                    variant="ghost" 
+                                                <Button
+                                                    variant="ghost"
                                                     size="sm"
                                                     onClick={() => removeArrayField('targetAudience', index)}
                                                 >
@@ -725,8 +725,8 @@ const CreateCourse = () => {
                                             )}
                                         </div>
                                     ))}
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         size="sm"
                                         onClick={() => addArrayField('targetAudience')}
                                     >
@@ -823,7 +823,7 @@ const CreateCourse = () => {
                                                             </Button>
                                                         )}
                                                     </div>
-                                                    
+
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <Input
                                                             placeholder="Lesson title"
@@ -842,13 +842,13 @@ const CreateCourse = () => {
                                                             <option value="LIVE_SESSION">Live Session</option>
                                                         </select>
                                                     </div>
-                                                    
+
                                                     <Input
                                                         placeholder="Lesson description"
                                                         value={lesson.description}
                                                         onChange={(e) => updateLesson(moduleIndex, lessonIndex, 'description', e.target.value)}
                                                     />
-                                                    
+
                                                     {lesson.type === 'VIDEO' && (
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <Input
@@ -864,14 +864,14 @@ const CreateCourse = () => {
                                                             />
                                                         </div>
                                                     )}
-                                                    
+
                                                     <textarea
                                                         className="w-full min-h-24 p-3 border border-input rounded-md resize-none"
                                                         placeholder="Lesson content"
                                                         value={lesson.content}
                                                         onChange={(e) => updateLesson(moduleIndex, lessonIndex, 'content', e.target.value)}
                                                     />
-                                                    
+
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="checkbox"
@@ -879,8 +879,8 @@ const CreateCourse = () => {
                                                             checked={lesson.isFree}
                                                             onChange={(e) => updateLesson(moduleIndex, lessonIndex, 'isFree', e.target.checked)}
                                                         />
-                                                        <label 
-                                                            htmlFor={`free-${moduleIndex}-${lessonIndex}`} 
+                                                        <label
+                                                            htmlFor={`free-${moduleIndex}-${lessonIndex}`}
                                                             className="text-sm"
                                                         >
                                                             Free preview lesson
@@ -889,9 +889,9 @@ const CreateCourse = () => {
                                                 </div>
                                             );
                                         })}
-                                        
-                                        <Button 
-                                            variant="outline" 
+
+                                        <Button
+                                            variant="outline"
                                             size="sm"
                                             onClick={() => addLesson(moduleIndex)}
                                         >
@@ -1022,14 +1022,14 @@ const CreateCourse = () => {
 
             {/* Navigation */}
             <div className="flex justify-between">
-                <Button 
+                <Button
                     variant="outline"
                     onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
                     disabled={currentStep === 1}
                 >
                     Previous
                 </Button>
-                <Button 
+                <Button
                     onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
                     disabled={currentStep === 4}
                 >

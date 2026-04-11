@@ -1,7 +1,16 @@
 // scripts/seed-categories.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+import 'dotenv/config';
 
-const prisma = new PrismaClient();
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
+
+const prisma = new PrismaClient({
+    adapter: new PrismaPg(pool),
+});
 
 async function main() {
     console.log('Seeding categories...');
@@ -14,6 +23,7 @@ async function main() {
             icon: '🔬',
             color: '#3B82F6',
             sortOrder: 1,
+            isActive: true,
         },
         {
             name: 'Business & Entrepreneurship',
@@ -22,6 +32,7 @@ async function main() {
             icon: '💼',
             color: '#10B981',
             sortOrder: 2,
+            isActive: true,
         },
         {
             name: 'Financial Literacy',
@@ -30,6 +41,7 @@ async function main() {
             icon: '💰',
             color: '#F59E0B',
             sortOrder: 3,
+            isActive: true,
         },
         {
             name: 'Green Technology',
@@ -38,6 +50,7 @@ async function main() {
             icon: '🌱',
             color: '#22C55E',
             sortOrder: 4,
+            isActive: true,
         },
     ];
 
@@ -79,4 +92,5 @@ main()
     })
     .finally(async () => {
         await prisma.$disconnect();
+        await pool.end();
     });
