@@ -110,10 +110,11 @@ const AdminDashboard = () => {
     ];
 
     const quickActions = [
-        { title: 'View All Users', icon: Users, action: 'users' },
-        { title: 'Manage Courses', icon: BookOpen, action: 'courses' },
-        { title: 'Revenue Reports', icon: DollarSign, action: 'reports' },
-        { title: 'Support Center', icon: AlertCircle, action: 'support' }
+        { title: 'View All Users', icon: Users, action: 'users', href: '/admin/users' },
+        { title: 'Review Courses', icon: BookOpen, action: 'review-courses', href: '/admin/courses/review' },
+        { title: 'Manage Courses', icon: BookOpen, action: 'courses', href: '/admin/courses' },
+        { title: 'Revenue Reports', icon: DollarSign, action: 'reports', href: '/admin/dashboard' },
+        { title: 'Support Center', icon: AlertCircle, action: 'support', href: '/support' }
     ];
 
     return (
@@ -401,31 +402,19 @@ const AdminDashboard = () => {
                             {quickActions.map((action, index) => (
                                 <Button
                                     key={index}
-                                    asChild={action.action === 'users'}
+                                    asChild
                                     className="h-auto justify-start gap-3 rounded-2xl border border-border/60 bg-background p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
                                     variant="outline"
                                 >
-                                    {action.action === 'users' ? (
-                                        <Link href="/admin/users">
-                                            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                                <action.icon className="h-5 w-5" />
-                                            </span>
-                                            <span className="flex flex-col items-start">
-                                                <span className="text-sm font-semibold">{action.title}</span>
-                                                <span className="text-xs text-muted-foreground">Open section</span>
-                                            </span>
-                                        </Link>
-                                    ) : (
-                                        <>
-                                            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                                <action.icon className="h-5 w-5" />
-                                            </span>
-                                            <span className="flex flex-col items-start">
-                                                <span className="text-sm font-semibold">{action.title}</span>
-                                                <span className="text-xs text-muted-foreground">Open section</span>
-                                            </span>
-                                        </>
-                                    )}
+                                    <Link href={action.href}>
+                                        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                            <action.icon className="h-5 w-5" />
+                                        </span>
+                                        <span className="flex flex-col items-start">
+                                            <span className="text-sm font-semibold">{action.title}</span>
+                                            <span className="text-xs text-muted-foreground">Open section</span>
+                                        </span>
+                                    </Link>
                                 </Button>
                             ))}
                         </div>

@@ -51,7 +51,8 @@ export async function GET(req: NextRequest) {
                         lessons: {
                             select: {
                                 id: true,
-                                title: true
+                                title: true,
+                                isPublished: true
                             }
                         }
                     },

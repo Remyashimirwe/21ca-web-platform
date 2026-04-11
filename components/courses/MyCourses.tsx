@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
 import {
     BookOpen,
     Plus,
     Search,
-    Filter,
     MoreVertical,
     Edit,
     Eye,
@@ -23,7 +21,7 @@ import {
     Copy,
     BarChart3
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,28 +32,31 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+
+type CourseStatus = 'DRAFT' | 'UNDER_REVIEW' | 'PUBLISHED' | 'ARCHIVED' | string;
 
 interface Course {
     id: string;
     title: string;
     slug: string;
-    shortDescription: string;
-    thumbnail: string | null;
-    price: number;
-    discountPrice: number | null;
+    description?: string;
+    shortDescription?: string | null;
+    thumbnail?: string | null;
+    price: number | string;
+    discountPrice?: number | string | null;
+    currency?: string;
     level: string;
-    status: string;
+    status: CourseStatus;
     isPublished: boolean;
     enrollmentCount: number;
-    averageRating: number | null;
-    totalRatings: number;
-    publishedAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
+    averageRating?: number | string | null;
+    totalRatings?: number;
+    publishedAt?: string | Date | null;
+    createdAt: string | Date;
+    updatedAt: string | Date;
     category: {
         name: string;
-        color: string | null;
+        color?: string | null;
     };
     modules: {
         id: string;
@@ -63,6 +64,7 @@ interface Course {
         lessons: {
             id: string;
             title: string;
+            isPublished?: boolean;
         }[];
     }[];
 }
@@ -78,7 +80,6 @@ interface CourseStats {
 }
 
 const MyCourses = () => {
-    const { user } = useUser();
     const router = useRouter();
     const [courses, setCourses] = useState<Course[]>([]);
     const [stats, setStats] = useState<CourseStats>({
@@ -105,9 +106,15 @@ const MyCourses = () => {
             setLoading(true);
             const response = await fetch('/api/instructor/courses');
             const data = await response.json();
-            setCourses(data);
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'Failed to fetch courses');
+            }
+
+            setCourses(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch courses:', error);
+            setCourses([]);
         } finally {
             setLoading(false);
         }
@@ -117,16 +124,32 @@ const MyCourses = () => {
         try {
             const response = await fetch('/api/instructor/stats');
             const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'Failed to fetch stats');
+            }
+
             setStats(data);
         } catch (error) {
             console.error('Failed to fetch stats:', error);
         }
     };
 
-    const filteredCourses = courses.filter(course => {
-        const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            course.shortDescription.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = selectedStatus === 'all' || course.status === selectedStatus.toUpperCase();
+    const normalizeText = (value?: string | null) => (value || '').toLowerCase();
+
+    const getCourseDescription = (course: Course) =>
+        course.shortDescription || course.description || '';
+
+    const filteredCourses = courses.filter((course) => {
+        const title = normalizeText(course.title);
+        const description = normalizeText(getCourseDescription(course));
+        const query = searchQuery.toLowerCase();
+
+        const matchesSearch = title.includes(query) || description.includes(query);
+        const matchesStatus =
+            selectedStatus === 'all' ||
+            course.status.toLowerCase() === selectedStatus.toLowerCase();
+
         return matchesSearch && matchesStatus;
     });
 
@@ -147,18 +170,18 @@ const MyCourses = () => {
         }
     });
 
-    const getStatusBadge = (status: string, isPublished: boolean) => {
-        if (isPublished) {
-            return <Badge variant="default" className="bg-green-500">Published</Badge>;
+    const getStatusBadge = (status: CourseStatus, isPublished: boolean) => {
+        if (isPublished || status === 'PUBLISHED') {
+            return <Badge className="bg-green-500 hover:bg-green-500">Published</Badge>;
         }
-        
+
         switch (status) {
             case 'DRAFT':
                 return <Badge variant="secondary">Draft</Badge>;
             case 'UNDER_REVIEW':
                 return <Badge variant="outline" className="border-yellow-500 text-yellow-700">Under Review</Badge>;
             case 'ARCHIVED':
-                return <Badge variant="secondary" className="bg-gray-500">Archived</Badge>;
+                return <Badge variant="secondary" className="bg-gray-500 text-white">Archived</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
         }
@@ -173,7 +196,7 @@ const MyCourses = () => {
             const response = await fetch(`/api/courses/${courseId}`, {
                 method: 'DELETE'
             });
-            
+
             if (response.ok) {
                 setCourses(prev => prev.filter(course => course.id !== courseId));
                 fetchStats();
@@ -188,7 +211,7 @@ const MyCourses = () => {
             const response = await fetch(`/api/courses/${courseId}/duplicate`, {
                 method: 'POST'
             });
-            
+
             if (response.ok) {
                 fetchCourses();
             }
@@ -197,14 +220,16 @@ const MyCourses = () => {
         }
     };
 
-    const formatCurrency = (amount: number) => {
+    const formatCurrency = (amount: number | string, currency = 'USD') => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD'
-        }).format(amount);
+            currency
+        }).format(Number(amount) || 0);
     };
 
-    const formatDate = (date: Date | string) => {
+    const formatDate = (date: string | Date | null | undefined) => {
+        if (!date) return 'N/A';
+
         return new Date(date).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -212,9 +237,12 @@ const MyCourses = () => {
         });
     };
 
+    const getLessonCount = (course: Course) => {
+        return course.modules.reduce((total, module) => total + (module.lessons?.length || 0), 0);
+    };
+
     return (
         <div className="space-y-8">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">My Courses</h1>
@@ -226,7 +254,6 @@ const MyCourses = () => {
                 </Button>
             </div>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
@@ -236,7 +263,7 @@ const MyCourses = () => {
                                 <p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
                                 <p className="text-xs text-green-600 flex items-center gap-1">
                                     <TrendingUp className="h-3 w-3" />
-                                    +12% this month
+                                    Based on completed payments
                                 </p>
                             </div>
                             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -254,7 +281,7 @@ const MyCourses = () => {
                                 <p className="text-2xl font-bold">{stats.totalStudents.toLocaleString()}</p>
                                 <p className="text-xs text-blue-600 flex items-center gap-1">
                                     <TrendingUp className="h-3 w-3" />
-                                    +8% this week
+                                    Enrolled learners
                                 </p>
                             </div>
                             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -274,7 +301,7 @@ const MyCourses = () => {
                                 </p>
                                 <p className="text-xs text-yellow-600 flex items-center gap-1">
                                     <Star className="h-3 w-3" />
-                                    {stats.totalCourses} courses rated
+                                    {stats.totalCourses} courses
                                 </p>
                             </div>
                             <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
@@ -302,7 +329,6 @@ const MyCourses = () => {
                 </Card>
             </div>
 
-            {/* Filters and Search */}
             <Card>
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -316,7 +342,7 @@ const MyCourses = () => {
                                     className="pl-9"
                                 />
                             </div>
-                            
+
                             <select
                                 value={selectedStatus}
                                 onChange={(e) => setSelectedStatus(e.target.value)}
@@ -328,7 +354,7 @@ const MyCourses = () => {
                                 <option value="under_review">Under Review</option>
                                 <option value="archived">Archived</option>
                             </select>
-                            
+
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
@@ -342,7 +368,7 @@ const MyCourses = () => {
                                 <option value="revenue">Revenue</option>
                             </select>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>{sortedCourses.length} courses</span>
                         </div>
@@ -350,7 +376,6 @@ const MyCourses = () => {
                 </CardContent>
             </Card>
 
-            {/* Course Grid */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[...Array(6)].map((_, i) => (
@@ -372,9 +397,9 @@ const MyCourses = () => {
                     <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No courses found</h3>
                     <p className="text-muted-foreground mb-6">
-                        {searchQuery || selectedStatus !== 'all' 
-                            ? "Try adjusting your search or filters"
-                            : "Start creating your first course to share your knowledge with the world"
+                        {searchQuery || selectedStatus !== 'all'
+                            ? 'Try adjusting your search or filters'
+                            : 'Start creating your first course to share your knowledge with the world'
                         }
                     </p>
                     {!searchQuery && selectedStatus === 'all' && (
@@ -386,157 +411,165 @@ const MyCourses = () => {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedCourses.map((course) => (
-                        <Card key={course.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
-                            <div className="relative">
-                                {course.thumbnail ? (
-                                    <img 
-                                        src={course.thumbnail} 
-                                        alt={course.title}
-                                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                ) : (
-                                    <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                        <BookOpen className="h-16 w-16 text-primary/40" />
+                    {sortedCourses.map((course) => {
+                        const lessonCount = getLessonCount(course);
+                        const price = Number(course.price) || 0;
+                        const rating = Number(course.averageRating) || 0;
+
+                        return (
+                            <Card key={course.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
+                                <div className="relative">
+                                    {course.thumbnail ? (
+                                        <img
+                                            src={course.thumbnail}
+                                            alt={course.title}
+                                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                                            <BookOpen className="h-16 w-16 text-primary/40" />
+                                        </div>
+                                    )}
+
+                                    <div className="absolute top-3 left-3">
+                                        {getStatusBadge(course.status, course.isPublished)}
                                     </div>
-                                )}
-                                <div className="absolute top-3 left-3">
-                                    {getStatusBadge(course.status, course.isPublished)}
+
+                                    <div className="absolute top-3 right-3">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="bg-background/90 hover:bg-background border border-border shadow-sm backdrop-blur-sm"
+                                                >
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border border-border">
+                                                <DropdownMenuItem onClick={() => router.push(`/instructor/courses/${course.id}/edit`)}>
+                                                    <Edit className="h-4 w-4 mr-2" />
+                                                    Edit Course
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => router.push(`/courses/${course.slug}`)}>
+                                                    <Eye className="h-4 w-4 mr-2" />
+                                                    Preview
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => router.push(`/instructor/courses/${course.id}/analytics`)}>
+                                                    <BarChart3 className="h-4 w-4 mr-2" />
+                                                    Analytics
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => handleDuplicateCourse(course.id)}>
+                                                    <Copy className="h-4 w-4 mr-2" />
+                                                    Duplicate
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <Share2 className="h-4 w-4 mr-2" />
+                                                    Share
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Export Data
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDeleteCourse(course.id)}
+                                                    className="text-red-600 focus:text-red-600"
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
-                                <div className="absolute top-3 right-3">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="sm" className="bg-white/90 hover:bg-white">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem 
+
+                                <CardContent className="p-6 bg-card text-card-foreground">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                                                {course.title}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                                {getCourseDescription(course)}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <Badge variant="outline" className="text-xs">
+                                                {course.category?.name || 'Uncategorized'}
+                                            </Badge>
+                                            <Badge variant="secondary" className="text-xs capitalize">
+                                                {course.level?.toLowerCase?.() || 'beginner'}
+                                            </Badge>
+                                            {course.publishedAt ? (
+                                                <Badge variant="outline" className="text-xs">
+                                                    Published {formatDate(course.publishedAt)}
+                                                </Badge>
+                                            ) : null}
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-4 text-sm">
+                                            <div className="text-center">
+                                                <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                                                    <Users className="h-3 w-3" />
+                                                    <span>{course.enrollmentCount}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Students</div>
+                                            </div>
+
+                                            <div className="text-center">
+                                                <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                                                    <Star className="h-3 w-3" />
+                                                    <span>{rating ? rating.toFixed(1) : 'N/A'}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Rating</div>
+                                            </div>
+
+                                            <div className="text-center">
+                                                <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                                                    <DollarSign className="h-3 w-3" />
+                                                    <span>{formatCurrency(price, course.currency)}</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Price</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
+                                            <div className="flex items-center gap-1">
+                                                <Calendar className="h-3 w-3" />
+                                                <span>Updated {formatDate(course.updatedAt)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Clock className="h-3 w-3" />
+                                                <span>{lessonCount} lessons</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2">
+                                            <Button
+                                                size="sm"
+                                                className="flex-1"
                                                 onClick={() => router.push(`/instructor/courses/${course.id}/edit`)}
                                             >
-                                                <Edit className="h-4 w-4 mr-2" />
-                                                Edit Course
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem 
-                                                onClick={() => router.push(`/courses/${course.slug}`)}
-                                            >
-                                                <Eye className="h-4 w-4 mr-2" />
-                                                Preview
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem 
+                                                <Edit className="h-3 w-3 mr-1" />
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
                                                 onClick={() => router.push(`/instructor/courses/${course.id}/analytics`)}
                                             >
-                                                <BarChart3 className="h-4 w-4 mr-2" />
-                                                Analytics
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleDuplicateCourse(course.id)}>
-                                                <Copy className="h-4 w-4 mr-2" />
-                                                Duplicate
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem>
-                                                <Share2 className="h-4 w-4 mr-2" />
-                                                Share
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem>
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Export Data
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem 
-                                                onClick={() => handleDeleteCourse(course.id)}
-                                                className="text-red-600 focus:text-red-600"
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </div>
-                            
-                            <CardContent className="p-6">
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                                            {course.title}
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                                            {course.shortDescription}
-                                        </p>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="text-xs">
-                                            {course.category.name}
-                                        </Badge>
-                                        <Badge variant="secondary" className="text-xs capitalize">
-                                            {course.level.toLowerCase()}
-                                        </Badge>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-3 gap-4 text-sm">
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-muted-foreground">
-                                                <Users className="h-3 w-3" />
-                                                <span>{course.enrollmentCount}</span>
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">Students</div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-muted-foreground">
-                                                <Star className="h-3 w-3" />
-                                                <span>
-                                                    {course.averageRating 
-                                                        ? Number(course.averageRating).toFixed(1) 
-                                                        : 'N/A'
-                                                    }
-                                                </span>
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">Rating</div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="flex items-center justify-center gap-1 text-muted-foreground">
-                                                <DollarSign className="h-3 w-3" />
-                                                <span>{course.price}</span>
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">Price</div>
+                                                <BarChart3 className="h-3 w-3 mr-1" />
+                                                Stats
+                                            </Button>
                                         </div>
                                     </div>
-                                    
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-                                        <div className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
-                                            <span>Updated {formatDate(course.updatedAt)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            <span>{course.modules.reduce((total, module) => total + module.lessons.length, 0)} lessons</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex gap-2 pt-2">
-                                        <Button 
-                                            size="sm" 
-                                            className="flex-1"
-                                            onClick={() => router.push(`/instructor/courses/${course.id}/edit`)}
-                                        >
-                                            <Edit className="h-3 w-3 mr-1" />
-                                            Edit
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            variant="outline"
-                                            onClick={() => router.push(`/instructor/courses/${course.id}/analytics`)}
-                                        >
-                                            <BarChart3 className="h-3 w-3 mr-1" />
-                                            Stats
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
             )}
         </div>

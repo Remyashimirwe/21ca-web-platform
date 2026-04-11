@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -59,17 +59,19 @@ function getStatusTone(status: CourseItem['status']) {
 }
 
 export default function CourseReviewCard({
-    course,
-    savingId,
-    onSavingIdChange,
-    onRefresh,
-}: {
+                                             course,
+                                             savingId,
+                                             onSavingIdChange,
+                                             onRefresh,
+                                         }: {
     course: CourseItem;
     savingId: string | null;
     onSavingIdChange: (id: string | null) => void;
     onRefresh: () => Promise<void>;
 }) {
     const router = useRouter();
+    const [rejecting, setRejecting] = useState(false);
+    const [reason, setReason] = useState('');
 
     const approveCourse = async () => {
         onSavingIdChange(course.id);
@@ -78,14 +80,48 @@ export default function CourseReviewCard({
                 method: 'POST',
             });
 
-            if (!res.ok) throw new Error('Failed to approve course');
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(data.error || data.details || 'Failed to approve course');
+            }
 
             await onRefresh();
         } catch (error) {
             console.error(error);
-            alert('Failed to approve course');
+            alert(error instanceof Error ? error.message : 'Failed to approve course');
         } finally {
             onSavingIdChange(null);
+        }
+    };
+
+    const rejectCourse = async () => {
+        if (!reason.trim()) {
+            alert('Please provide a rejection reason');
+            return;
+        }
+
+        setRejecting(true);
+        try {
+            const res = await fetch(`/api/admin/courses/${course.id}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(data.error || data.details || 'Failed to reject course');
+            }
+
+            setReason('');
+            await onRefresh();
+        } catch (error) {
+            console.error(error);
+            alert(error instanceof Error ? error.message : 'Failed to reject course');
+        } finally {
+            setRejecting(false);
         }
     };
 
@@ -121,6 +157,18 @@ export default function CourseReviewCard({
                                 {course.lessonsCount || 0} lessons
                             </span>
                         </div>
+
+                        {course.status === 'UNDER_REVIEW' && (
+                            <div className="mt-4 space-y-2">
+                                <label className="text-sm font-medium">Reject reason</label>
+                                <textarea
+                                    className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm outline-none"
+                                    placeholder="Write a reason for rejection..."
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -136,7 +184,7 @@ export default function CourseReviewCard({
                                 <Button
                                     size="sm"
                                     onClick={approveCourse}
-                                    disabled={savingId === course.id}
+                                    disabled={savingId === course.id || rejecting}
                                 >
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Approve
@@ -145,7 +193,8 @@ export default function CourseReviewCard({
                                 <Button
                                     variant="destructive"
                                     size="sm"
-                                    disabled={savingId === course.id}
+                                    onClick={rejectCourse}
+                                    disabled={savingId === course.id || rejecting}
                                 >
                                     <XCircle className="mr-2 h-4 w-4" />
                                     Reject

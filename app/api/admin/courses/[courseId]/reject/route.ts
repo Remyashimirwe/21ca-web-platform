@@ -33,12 +33,18 @@ export async function POST(
         const adminCheck = await requireAdmin();
         if ('error' in adminCheck) return adminCheck.error;
 
+        const body = await req.json().catch(() => ({}));
+        const reason =
+            typeof body.reason === 'string' && body.reason.trim()
+                ? body.reason.trim()
+                : 'Your course submission needs changes before approval.';
+
         const course = await prisma.course.update({
             where: { id: params.courseId },
             data: {
-                status: 'PUBLISHED',
-                isPublished: true,
-                publishedAt: new Date(),
+                status: 'ARCHIVED',
+                isPublished: false,
+                publishedAt: null,
             },
             include: {
                 instructor: true,
@@ -48,20 +54,23 @@ export async function POST(
         try {
             await createNotification({
                 userId: course.instructor.id,
-                title: '🎉 Course Approved!',
-                message: `Congratulations! Your course "${course.title}" has been approved and is now live on the platform.`,
-                type: 'SUCCESS',
-                actionUrl: `/courses/${course.slug}`,
+                title: 'Course Review Result',
+                message: `Your course "${course.title}" was rejected. ${reason}`,
+                type: 'WARNING',
+                actionUrl: '/instructor/courses',
             });
         } catch (notificationError) {
             console.error('Notification failed:', notificationError);
         }
 
-        return NextResponse.json(course);
+        return NextResponse.json({
+            message: 'Course rejected successfully',
+            course,
+        });
     } catch (error: any) {
-        console.error('Error approving course:', error);
+        console.error('Error rejecting course:', error);
         return NextResponse.json(
-            { error: 'Failed to approve course', details: error?.message || String(error) },
+            { error: 'Failed to reject course', details: error?.message || String(error) },
             { status: 500 }
         );
     }

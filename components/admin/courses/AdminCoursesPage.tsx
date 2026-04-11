@@ -2,13 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
     Search,
     BookOpen,
     Clock,
     CheckCircle2,
-    XCircle,
     Eye,
     RefreshCw,
     Filter,
@@ -48,7 +46,6 @@ type CourseItem = {
 };
 
 export default function AdminCoursesPage() {
-    const router = useRouter();
     const [courses, setCourses] = useState<CourseItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [savingId, setSavingId] = useState<string | null>(null);

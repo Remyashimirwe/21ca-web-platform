@@ -2,9 +2,9 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import CourseReviewPage from '@/components/admin/CourseReviewPage';
+import AdminCoursesPage from '@/components/admin/courses/AdminCoursesPage';
 
-export default async function AdminCourseReviewPage() {
+export default async function AdminCoursesReviewPage() {
     const { userId } = await auth();
     const user = await currentUser();
 
@@ -12,14 +12,14 @@ export default async function AdminCourseReviewPage() {
         redirect('/sign-in');
     }
 
-    const userRole = user.publicMetadata?.role as string;
-    if (userRole !== 'admin') {
+    const userRole = String(user.publicMetadata?.role || '').toUpperCase();
+    if (userRole !== 'ADMIN') {
         redirect('/dashboard');
     }
 
     return (
         <DashboardLayout>
-            <CourseReviewPage />
+            <AdminCoursesPage />
         </DashboardLayout>
     );
 }
