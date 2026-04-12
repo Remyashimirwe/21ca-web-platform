@@ -3,17 +3,17 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
-import { ThemeProvider } from "@/components/theme-provider"
-import {ClerkProvider} from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -30,40 +30,33 @@ export const metadata: Metadata = {
     },
 };
 
-// Add viewport configuration to prevent mobile zoom
 export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
 };
 
 export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
+                                       children,
+                                   }: Readonly<{
+    children: React.ReactNode;
 }>) {
-  return (
-      <ClerkProvider>
-          <html lang="en" suppressHydrationWarning>
-          <head>
-              {/* Fallback viewport meta tag for older browsers */}
-              <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-          </head>
-          <body
-              className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-          >
-          <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-          >
-              <ConditionalNavbar />
-              {children}
-          </ThemeProvider>
-          </body>
-          </html>
-      </ClerkProvider>
-  );
+    return (
+        <ClerkProvider>
+            <html lang="en" suppressHydrationWarning>
+            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+            >
+                <ConditionalNavbar />
+                <main className="pt-16 md:pt-16">
+                    {children}
+                </main>
+            </ThemeProvider>
+            </body>
+            </html>
+        </ClerkProvider>
+    );
 }

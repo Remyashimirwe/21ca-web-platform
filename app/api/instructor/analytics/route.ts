@@ -15,8 +15,7 @@ export async function GET(req: NextRequest) {
         const searchParams = req.nextUrl.searchParams;
         const timeframe = searchParams.get('timeframe') || '30d';
 
-        // Get instructor from database
-        let dbUser = await prisma.user.findUnique({
+        const dbUser = await prisma.user.findUnique({
             where: { clerkId: userId }
         });
 
@@ -24,9 +23,9 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Calculate date range
         const now = new Date();
         let startDate = new Date();
+
         switch (timeframe) {
             case '7d':
                 startDate.setDate(now.getDate() - 7);
@@ -40,9 +39,10 @@ export async function GET(req: NextRequest) {
             case '1y':
                 startDate.setFullYear(now.getFullYear() - 1);
                 break;
+            default:
+                startDate.setDate(now.getDate() - 30);
         }
 
-        // Get instructor's courses with enrollments and payments
         const courses = await prisma.course.findMany({
             where: {
                 instructorId: dbUser.id
@@ -52,6 +52,18 @@ export async function GET(req: NextRequest) {
                     where: {
                         enrolledAt: {
                             gte: startDate
+                        }
+                    },
+                    include: {
+                        lessonProgress: {
+                            include: {
+                                lesson: {
+                                    select: {
+                                        id: true,
+                                        isPublished: true
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -63,50 +75,68 @@ export async function GET(req: NextRequest) {
                         }
                     }
                 },
-                reviews: true
+                reviews: {
+                    where: {
+                        createdAt: {
+                            gte: startDate
+                        }
+                    }
+                }
             }
         });
 
-        // Calculate overview stats
         const totalRevenue = courses.reduce((sum, course) => {
             return sum + course.payments.reduce((paymentSum, payment) => {
                 return paymentSum + Number(payment.amount);
             }, 0);
         }, 0);
 
-        const totalStudents = courses.reduce((sum, course) => {
-            return sum + course.enrollmentCount;
-        }, 0);
+        const totalStudents = courses.reduce((sum, course) => sum + course.enrollmentCount, 0);
 
-        const averageRating = courses.reduce((sum, course) => {
-            return sum + (Number(course.averageRating) || 0);
-        }, 0) / (courses.length || 1);
+        const averageRating =
+            courses.length > 0
+                ? courses.reduce((sum, course) => sum + (Number(course.averageRating) || 0), 0) / courses.length
+                : 0;
 
-        const completionRate = Math.round(
-            courses.reduce((sum, course) => {
+        const completionRate =
+            courses.length > 0
+                ? Math.round(
+                      courses.reduce((sum, course) => {
+                          const completedCount = course.enrollments.filter(e => e.status === 'COMPLETED').length;
+                          return sum + (completedCount / (course.enrollments.length || 1)) * 100;
+                      }, 0) / courses.length
+                  )
+                : 0;
+
+        const coursesPerformance = courses
+            .map(course => {
                 const completedCount = course.enrollments.filter(e => e.status === 'COMPLETED').length;
-                return sum + (completedCount / (course.enrollments.length || 1)) * 100;
-            }, 0) / (courses.length || 1)
-        );
+                const totalLessonCompletions = course.enrollments.reduce((count, enrollment) => {
+                    return count + enrollment.lessonProgress.filter(p => p.isCompleted).length;
+                }, 0);
 
-        // Calculate courses performance
-        const coursesPerformance = courses.map(course => ({
-            courseId: course.id,
-            title: course.title,
-            enrollments: course.enrollmentCount,
-            revenue: course.payments.reduce((sum, p) => sum + Number(p.amount), 0),
-            averageProgress: Math.round(
-                course.enrollments.reduce((sum, e) => sum + e.progress, 0) / 
-                (course.enrollments.length || 1)
-            ),
-            completionRate: Math.round(
-                (course.enrollments.filter(e => e.status === 'COMPLETED').length / 
-                (course.enrollments.length || 1)) * 100
-            ),
-            rating: Number(course.averageRating) || 0
-        })).sort((a, b) => b.revenue - a.revenue);
+                const totalWatchTime = course.enrollments.reduce((count, enrollment) => {
+                    return count + enrollment.lessonProgress.reduce((sum, p) => sum + p.watchTime, 0);
+                }, 0);
 
-        // Generate monthly data
+                return {
+                    courseId: course.id,
+                    title: course.title,
+                    enrollments: course.enrollmentCount,
+                    revenue: course.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+                    averageProgress: Math.round(
+                        course.enrollments.reduce((sum, e) => sum + e.progress, 0) / (course.enrollments.length || 1)
+                    ),
+                    completionRate: Math.round(
+                        (completedCount / (course.enrollments.length || 1)) * 100
+                    ),
+                    rating: Number(course.averageRating) || 0,
+                    lessonCompletions: totalLessonCompletions,
+                    watchTimeHours: Math.round(totalWatchTime / 3600)
+                };
+            })
+            .sort((a, b) => b.revenue - a.revenue);
+
         const monthlyData = [];
         for (let i = 5; i >= 0; i--) {
             const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -141,34 +171,66 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        // Generate engagement data (mock for now - you can enhance this)
-        const studentEngagement = [];
+        const studentEngagement: {
+            date: string;
+            activeStudents: number;
+            lessonCompletions: number;
+            quizAttempts: number;
+        }[] = [];
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            
+
+            const dayStart = new Date(date);
+            dayStart.setHours(0, 0, 0, 0);
+
+            const dayEnd = new Date(date);
+            dayEnd.setHours(23, 59, 59, 999);
+
+            const dayEnrollments = courses.flatMap(course => course.enrollments).filter(enrollment => {
+                const enrolled = new Date(enrollment.enrolledAt);
+                return enrolled >= dayStart && enrolled <= dayEnd;
+            });
+
+            const activeStudents = dayEnrollments.length;
+            const lessonCompletions = dayEnrollments.reduce((sum, enrollment) => {
+                return sum + enrollment.lessonProgress.filter(p => p.isCompleted).length;
+            }, 0);
+
+            const quizAttempts = dayEnrollments.reduce((sum, enrollment) => {
+                return sum + enrollment.lessonProgress.filter(p => p.lesson?.isPublished).length;
+            }, 0);
+
             studentEngagement.push({
                 date: date.toISOString(),
-                activeStudents: Math.floor(Math.random() * 50) + 20,
-                lessonCompletions: Math.floor(Math.random() * 30) + 10,
-                quizAttempts: Math.floor(Math.random() * 20) + 5
+                activeStudents,
+                lessonCompletions,
+                quizAttempts
             });
         }
+
+        const statusBreakdown = {
+            DRAFT: courses.filter(c => c.status === 'DRAFT').length,
+            UNDER_REVIEW: courses.filter(c => c.status === 'UNDER_REVIEW').length,
+            PUBLISHED: courses.filter(c => c.status === 'PUBLISHED' || c.isPublished).length,
+            ARCHIVED: courses.filter(c => c.status === 'ARCHIVED').length
+        };
 
         return NextResponse.json({
             overview: {
                 totalRevenue,
-                revenueChange: 12.5, // Mock - calculate actual change
+                revenueChange: 0,
                 totalStudents,
-                studentsChange: 8.3, // Mock
+                studentsChange: 0,
                 averageRating,
-                ratingChange: 0.5, // Mock
+                ratingChange: 0,
                 completionRate,
-                completionChange: 3.2 // Mock
+                completionChange: 0
             },
             coursesPerformance,
             monthlyData,
-            studentEngagement
+            studentEngagement,
+            statusBreakdown
         });
     } catch (error) {
         console.error('Error fetching analytics:', error);

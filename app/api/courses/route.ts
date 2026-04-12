@@ -12,14 +12,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Creating course for user:', userId);
-
-    // Sync or get user from database
     let dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
 
     if (!dbUser) {
-      console.log('User not found in DB, creating...');
-
       const clerkRole = clerkUser.publicMetadata?.role as string;
       const userRole = clerkRole ? clerkRole.toUpperCase() : 'USER';
       const validRoles = ['USER', 'INSTRUCTOR', 'ADMIN', 'PARTNER'];
@@ -35,8 +30,6 @@ export async function POST(req: NextRequest) {
           role: finalRole as any,
         },
       });
-
-      console.log('User created:', dbUser.id, 'with role:', finalRole);
     }
 
     const body = await req.json();
@@ -78,8 +71,8 @@ export async function POST(req: NextRequest) {
     }
 
     const slug = title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').trim();
-
-    console.log('Creating course with slug:', slug);
+    const normalizedStatus = (status || 'DRAFT') as 'DRAFT' | 'UNDER_REVIEW' | 'PUBLISHED' | 'ARCHIVED';
+    const shouldPublish = normalizedStatus === 'PUBLISHED';
 
     const course = await prisma.course.create({
       data: {
@@ -100,9 +93,9 @@ export async function POST(req: NextRequest) {
         targetAudience: targetAudience || [],
         metaTitle: metaTitle || title,
         metaDescription: metaDescription || shortDescription || '',
-        status: status || 'DRAFT',
-        isPublished: status === 'PUBLISHED',
-        publishedAt: status === 'PUBLISHED' ? new Date() : null,
+        status: normalizedStatus,
+        isPublished: shouldPublish,
+        publishedAt: shouldPublish ? new Date() : null,
         instructorId: dbUser.id,
         modules:
           modules && modules.length > 0
@@ -111,7 +104,7 @@ export async function POST(req: NextRequest) {
                   title: module.title || `Module ${moduleIndex + 1}`,
                   description: module.description || '',
                   sortOrder: moduleIndex,
-                  isPublished: status === 'PUBLISHED',
+                  isPublished: shouldPublish,
                   lessons:
                     module.lessons && module.lessons.length > 0
                       ? {
@@ -124,7 +117,7 @@ export async function POST(req: NextRequest) {
                             type: lesson.type || 'VIDEO',
                             isFree: lesson.isFree || false,
                             sortOrder: lessonIndex,
-                            isPublished: status === 'PUBLISHED',
+                            isPublished: shouldPublish,
                           })),
                         }
                       : undefined,
@@ -138,9 +131,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log('Course created successfully:', course.id);
-
-    // Handle tags
     if (tags && Array.isArray(tags) && tags.length > 0) {
       try {
         await prisma.courseTag.createMany({
@@ -152,8 +142,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 🔔 Send notification if course is UNDER_REVIEW
-    if (status === 'UNDER_REVIEW') {
+    if (normalizedStatus === 'UNDER_REVIEW') {
       await createNotification({
         userId: dbUser.id,
         title: '📚 Course Submitted for Review',

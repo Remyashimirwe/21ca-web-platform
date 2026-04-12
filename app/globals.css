@@ -66,14 +66,14 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--card-foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
@@ -100,166 +100,60 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--card-foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
+
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    scrolling-touch: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-
-/* Optional: Add subtle scroll indicators */
-@media (min-width: 768px) {
-    .scroll-container {
-        position: relative;
-    }
-
-    .scroll-container::before,
-    .scroll-container::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 20px;
-        pointer-events: none;
-        z-index: 1;
-    }
-
-    .scroll-container::before {
-        left: 0;
-        background: linear-gradient(to right, var(--background), transparent);
-    }
-
-    .scroll-container::after {
-        right: 0;
-        background: linear-gradient(to left, var(--background), transparent);
-    }
-}
-/* Button text visibility fixes */
-.btn-primary-text {
-    color: var(--primary-foreground) !important;
-}
-
-/* Ensure button text is always visible */
-button {
-    color: inherit;
-}
-
-/* Fix for primary buttons specifically */
-.bg-primary {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-}
-
-/* Enhanced contrast for button states */
-:root {
-    --primary: 220 14% 20%; /* Darker for better contrast */
-}
-
-.dark {
-    --primary: 210 40% 85%; /* Lighter for dark mode */
-}
-:root {
-    --primary: oklch(0.4 0.15 220); /* Blue-tinted with more chroma */
-    --primary-foreground: oklch(0.98 0 0); /* Pure white */
-}
-
-.dark {
-    --primary: oklch(0.7 0.15 220); /* Lighter blue for dark mode */
-    --primary-foreground: oklch(0.1 0 0); /* Dark text */
-}
-/* Enhanced button hover effects with background changes */
-.bg-primary:hover {
-    background-color: hsl(var(--primary) / 0.9);
-}
-
-/* Specific hover effects for different button variants */
-.hover\:bg-primary\/90:hover {
-    background-color: hsl(var(--primary) / 0.9);
-}
-
-/* Color-specific hover effects for pricing cards */
-.hover-bg-green:hover {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.1));
-    border-color: rgb(34 197 94 / 0.3);
-}
-
-.hover-bg-blue:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.1));
-    border-color: rgb(59 130 246 / 0.3);
-}
-
-/* Button hover background transitions */
-button:hover {
-    background-color: hsl(var(--primary) / 0.85);
-    transition: all 0.2s ease-in-out;
-}
-
-/* Outline button hover effects */
-.border-primary:hover {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-}
-
-/* Ghost button hover effects */
-.hover\:bg-accent:hover {
-    background-color: hsl(var(--accent));
-}
-
-/* Enhanced transitions for all interactive elements */
-button,
-.group:hover,
-[role="button"]:hover {
-    transition: background-color 0.2s ease-in-out,
-    border-color 0.2s ease-in-out,
-    transform 0.2s ease-in-out;
-}
-/* Prevent iOS zoom on input focus */
-@media screen and (max-width: 768px) {
-  input, 
-  textarea, 
-  select {
-    font-size: 16px !important; /* iOS zooms if font-size < 16px */
-  }
-}
-
-/* Prevent horizontal scroll on mobile */
-html, body {
-  overflow-x: hidden;
-  width: 100%;
-}
-
-/* Touch improvements */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-button, a {
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-}
-
-/* Prevent text size adjustment on orientation change */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+  display: none;
 }

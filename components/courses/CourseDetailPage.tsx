@@ -1,365 +1,290 @@
-// components/courses/CourseDetailPage.tsx
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useMemo, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import {
     BookOpen,
     Users,
-    Clock,
     Star,
-    Award,
-    CheckCircle,
-    PlayCircle,
-    Download,
-    Share2,
-    Heart,
-    Globe,
-    Calendar
+    Clock,
+    ArrowRight,
+    Play,
+    FileText,
+    HelpCircle,
+    ClipboardList,
+    Video,
+    BadgeInfo,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
 
-interface CourseDetailPageProps {
-    course: any;
+type LessonType = 'VIDEO' | 'TEXT' | 'QUIZ' | 'ASSIGNMENT' | 'LIVE_SESSION';
+
+type CourseLesson = {
+    id: string;
+    title: string;
+    description?: string | null;
+    content?: string | null;
+    videoUrl?: string | null;
+    type: LessonType;
+    sortOrder?: number;
+    isPublished?: boolean;
+    isFree?: boolean;
+};
+
+type CourseModule = {
+    id: string;
+    title: string;
+    description?: string | null;
+    sortOrder?: number;
+    isPublished?: boolean;
+    lessons?: CourseLesson[];
+};
+
+type Course = {
+    id: string;
+    title: string;
+    slug: string;
+    description?: string | null;
+    shortDescription?: string | null;
+    thumbnail?: string | null;
+    price: number | string;
+    currency?: string | null;
+    level?: string | null;
+    duration?: number | null;
+    averageRating?: number | string | null;
+    enrollmentCount?: number;
+    category?: {
+        name: string;
+        slug: string;
+    } | null;
+    instructor?: {
+        firstName?: string | null;
+        lastName?: string | null;
+    } | null;
+    modules?: CourseModule[];
+    _count?: {
+        enrollments?: number;
+        reviews?: number;
+    };
+};
+
+type Props = {
+    course: Course;
+};
+
+function getLessonIcon(type: LessonType) {
+    switch (type) {
+        case 'VIDEO':
+            return <Video className="h-4 w-4" />;
+        case 'TEXT':
+            return <FileText className="h-4 w-4" />;
+        case 'QUIZ':
+            return <HelpCircle className="h-4 w-4" />;
+        case 'ASSIGNMENT':
+            return <ClipboardList className="h-4 w-4" />;
+        case 'LIVE_SESSION':
+            return <BadgeInfo className="h-4 w-4" />;
+        default:
+            return <Play className="h-4 w-4" />;
+    }
 }
 
-const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ course }) => {
+export default function CourseDetailPage({ course }: Props) {
+    const { user, isLoaded } = useUser();
     const router = useRouter();
-    const { user } = useUser();
-    const [activeModule, setActiveModule] = useState<string | null>(null);
+    const [enrolling, setEnrolling] = useState(false);
 
-    const totalLessons = course.modules.reduce(
-        (total: number, module: any) => total + module.lessons.length,
-        0
+    const formattedModules = useMemo(
+        () => (course.modules || []).slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+        [course.modules]
     );
 
-    const totalDuration = course.modules.reduce(
-        (total: number, module: any) =>
-            total + module.lessons.reduce(
-                (moduleTotal: number, lesson: any) => moduleTotal + (lesson.videoDuration || 0),
-                0
-            ),
-        0
-    );
-
-    const formatDuration = (minutes: number) => {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    const formatCurrency = (amount: number | string, currency = 'USD') => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency,
+        }).format(Number(amount) || 0);
     };
 
-    const handleEnroll = async () => {
-        if (!user) {
-            router.push('/sign-in');
-            return;
-        }
+    const getInstructorName = () => {
+        if (!course?.instructor) return 'Unknown Instructor';
+        return `${course.instructor.firstName || ''} ${course.instructor.lastName || ''}`.trim() || 'Unknown Instructor';
+    };
 
+    const userRole = String((user?.publicMetadata as any)?.role || '').toLowerCase();
+    const canEnroll = isLoaded && !!user && userRole !== 'instructor' && userRole !== 'admin';
+
+    const handleEnroll = async () => {
         try {
-            const response = await fetch('/api/enrollments', {
+            setEnrolling(true);
+
+            const response = await fetch(`/api/courses/${course.id}/enroll`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ courseId: course.id })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             });
 
-            if (response.ok) {
-                alert('Successfully enrolled!');
-                router.push(`/courses/my-courses`);
-            } else {
-                alert('Failed to enroll');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'Failed to enroll');
             }
-        } catch (error) {
-            console.error('Enrollment error:', error);
-            alert('Failed to enroll');
+
+            router.push('/my-courses');
+        } catch (error: any) {
+            alert(error?.message || 'Enrollment failed');
+        } finally {
+            setEnrolling(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            {/* Hero Section */}
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
-                <div className="container mx-auto px-4 py-8 md:py-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Left: Course Info */}
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="flex items-center gap-2 flex-wrap">
+        <div className="max-w-5xl mx-auto p-6 space-y-8">
+            <Card className="overflow-hidden">
+                {course.thumbnail ? (
+                    <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="w-full h-72 object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-72 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                        <BookOpen className="h-16 w-16 text-primary/40" />
+                    </div>
+                )}
+
+                <CardContent className="p-6 space-y-6">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {course.category?.name ? (
                                 <Badge variant="secondary">{course.category.name}</Badge>
-                                <Badge variant="outline" className="capitalize">
-                                    {course.level.toLowerCase()}
-                                </Badge>
-                                {course.status === 'UNDER_REVIEW' && (
-                                    <Badge className="bg-yellow-500">Under Review</Badge>
-                                )}
-                                {course.isPublished && (
-                                    <Badge className="bg-green-500">Published</Badge>
-                                )}
-                            </div>
-
-                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-                                {course.title}
-                            </h1>
-
-                            <p className="text-lg text-muted-foreground">
-                                {course.shortDescription}
-                            </p>
-
-                            <div className="flex flex-wrap items-center gap-6 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                    <span className="font-medium">
-                                        {course.averageRating?.toFixed(1) || 'New'}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        ({course._count.reviews} reviews)
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    <span>{course._count.enrollments} students</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    <span>{formatDuration(totalDuration)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Globe className="h-4 w-4" />
-                                    <span className="capitalize">{course.language}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <Avatar className="h-12 w-12">
-                                    <AvatarImage src={course.instructor.imageUrl || ''} />
-                                    <AvatarFallback>
-                                        {course.instructor.firstName?.charAt(0)}
-                                        {course.instructor.lastName?.charAt(0)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Instructor</p>
-                                    <p className="font-medium">
-                                        {course.instructor.firstName} {course.instructor.lastName}
-                                    </p>
-                                </div>
-                            </div>
+                            ) : null}
+                            {course.level ? (
+                                <Badge variant="outline">{course.level}</Badge>
+                            ) : null}
                         </div>
 
-                        {/* Right: Price Card */}
-                        <div className="lg:col-span-1">
-                            <Card className="sticky top-4">
-                                <CardContent className="p-6 space-y-4">
-                                    {course.thumbnail && (
-                                        <img
-                                            src={course.thumbnail}
-                                            alt={course.title}
-                                            className="w-full h-48 object-cover rounded-lg"
-                                        />
-                                    )}
+                        <h1 className="text-3xl font-bold">{course.title}</h1>
+                        <p className="text-muted-foreground">
+                            {course.shortDescription || course.description || 'No description available.'}
+                        </p>
+                    </div>
 
-                                    <div>
-                                        <div className="text-3xl font-bold mb-2">
-                                            {course.discountPrice ? (
-                                                <>
-                                                    <span>${course.discountPrice}</span>
-                                                    <span className="text-lg text-muted-foreground line-through ml-2">
-                                                        ${course.price}
-                                                    </span>
-                                                </>
-                                            ) : (
-                                                <span>${course.price}</span>
-                                            )}
-                                        </div>
-                                        {course.discountPrice && (
-                                            <Badge variant="destructive">
-                                                Save ${(Number(course.price) - Number(course.discountPrice)).toFixed(2)}
-                                            </Badge>
-                                        )}
-                                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/40">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold">{course.enrollmentCount || 0}</span>
+                            <span className="text-xs text-muted-foreground">Students</span>
+                        </div>
 
-                                    <Button onClick={handleEnroll} className="w-full" size="lg">
-                                        Enroll Now
-                                    </Button>
+                        <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/40">
+                            <Star className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold">
+                                {course.averageRating ? Number(course.averageRating).toFixed(1) : 'N/A'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">Rating</span>
+                        </div>
 
-                                    <div className="space-y-2 pt-4 border-t">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Modules</span>
-                                            <span className="font-medium">{course.modules.length}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Lessons</span>
-                                            <span className="font-medium">{totalLessons}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Duration</span>
-                                            <span className="font-medium">{formatDuration(totalDuration)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="text-muted-foreground">Certificate</span>
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
-                                        </div>
-                                    </div>
+                        <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/40">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold">
+                                {course.duration ? `${course.duration}m` : 'Flexible'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">Duration</span>
+                        </div>
 
-                                    <div className="flex gap-2 pt-4 border-t">
-                                        <Button variant="outline" size="sm" className="flex-1">
-                                            <Share2 className="h-4 w-4 mr-2" />
-                                            Share
-                                        </Button>
-                                        <Button variant="outline" size="sm" className="flex-1">
-                                            <Heart className="h-4 w-4 mr-2" />
-                                            Save
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                        <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/40">
+                            <span className="font-semibold">
+                                {formatCurrency(course.price, course.currency || 'USD')}
+                            </span>
+                            <span className="text-xs text-muted-foreground">Price</span>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Content Section */}
-            <div className="container mx-auto px-4 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* What You'll Learn */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="text-2xl font-bold mb-4">What you'll learn</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {course.objectives.map((objective: string, index: number) => (
-                                        <div key={index} className="flex items-start gap-2">
-                                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span className="text-sm">{objective}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                    <div className="flex items-center justify-between gap-4 flex-wrap pt-2">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Instructor</p>
+                            <p className="font-medium">{getInstructorName()}</p>
+                        </div>
 
-                        {/* Description */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="text-2xl font-bold mb-4">About this course</h2>
-                                <p className="text-muted-foreground whitespace-pre-line">
-                                    {course.description}
-                                </p>
-                            </CardContent>
-                        </Card>
+                        <div className="flex gap-2">
+                            {canEnroll ? (
+                                <Button onClick={handleEnroll} disabled={enrolling}>
+                                    {enrolling ? 'Enrolling...' : 'Enroll Now'}
+                                    {!enrolling ? <ArrowRight className="h-4 w-4 ml-2" /> : null}
+                                </Button>
+                            ) : (
+                                <Button onClick={() => router.push(`/my-courses/${course.id}`)}>
+                                    Continue Learning
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-                        {/* Course Content */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h2 className="text-2xl font-bold mb-4">Course content</h2>
-                                <div className="space-y-2">
-                                    {course.modules.map((module: any, index: number) => (
-                                        <div key={module.id} className="border rounded-lg">
-                                            <button
-                                                onClick={() =>
-                                                    setActiveModule(
-                                                        activeModule === module.id ? null : module.id
-                                                    )
-                                                }
-                                                className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            <Card>
+                <CardContent className="p-6 space-y-6">
+                    <h2 className="text-2xl font-semibold">Course Content</h2>
+
+                    {formattedModules.length === 0 ? (
+                        <p className="text-muted-foreground">No modules available yet.</p>
+                    ) : (
+                        <div className="space-y-4">
+                            {formattedModules.map((module) => (
+                                <div key={module.id} className="rounded-lg border p-4 space-y-3">
+                                    <div>
+                                        <h3 className="text-lg font-semibold">{module.title}</h3>
+                                        {module.description ? (
+                                            <p className="text-sm text-muted-foreground">{module.description}</p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {(module.lessons || []).map((lesson) => (
+                                            <div
+                                                key={lesson.id}
+                                                className="flex items-start justify-between gap-3 rounded-md bg-muted/30 p-3"
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                        <span className="text-sm font-medium">{index + 1}</span>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-0.5 text-muted-foreground">
+                                                        {getLessonIcon(lesson.type)}
                                                     </div>
-                                                    <div className="text-left">
-                                                        <h3 className="font-medium">{module.title}</h3>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {module.lessons.length} lessons
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <PlayCircle className="h-5 w-5" />
-                                            </button>
-
-                                            {activeModule === module.id && (
-                                                <div className="border-t bg-muted/30">
-                                                    {module.lessons.map((lesson: any, lessonIndex: number) => (
-                                                        <div
-                                                            key={lesson.id}
-                                                            className="p-4 flex items-center justify-between border-b last:border-b-0"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                <PlayCircle className="h-4 w-4 text-muted-foreground" />
-                                                                <span className="text-sm">{lesson.title}</span>
-                                                                {lesson.isFree && (
-                                                                    <Badge variant="secondary" className="text-xs">
-                                                                        Free
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                            {lesson.videoDuration && (
-                                                                <span className="text-sm text-muted-foreground">
-                                                                    {lesson.videoDuration}m
-                                                                </span>
-                                                            )}
+                                                    <div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-medium">{lesson.title}</span>
+                                                            <Badge variant="outline">{lesson.type}</Badge>
+                                                            {lesson.isFree ? <Badge>Free</Badge> : null}
                                                         </div>
-                                                    ))}
+                                                        {lesson.description ? (
+                                                            <p className="text-sm text-muted-foreground mt-1">
+                                                                {lesson.description}
+                                                            </p>
+                                                        ) : null}
+                                                        {lesson.type === 'TEXT' && lesson.content ? (
+                                                            <p className="text-sm mt-2 whitespace-pre-wrap">{lesson.content}</p>
+                                                        ) : null}
+                                                        {lesson.type === 'VIDEO' && lesson.videoUrl ? (
+                                                            <p className="text-sm mt-2 text-muted-foreground">
+                                                                Video lesson available
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Requirements */}
-                        {course.requirements.length > 0 && (
-                            <Card>
-                                <CardContent className="p-6">
-                                    <h2 className="text-2xl font-bold mb-4">Requirements</h2>
-                                    <ul className="space-y-2">
-                                        {course.requirements.map((req: string, index: number) => (
-                                            <li key={index} className="flex items-start gap-2">
-                                                <span className="text-primary mt-1">•</span>
-                                                <span className="text-muted-foreground">{req}</span>
-                                            </li>
+                                            </div>
                                         ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="lg:col-span-1 space-y-6">
-                        {/* Instructor */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <h3 className="font-bold mb-4">Instructor</h3>
-                                <div className="flex items-start gap-4">
-                                    <Avatar className="h-16 w-16">
-                                        <AvatarImage src={course.instructor.imageUrl || ''} />
-                                        <AvatarFallback>
-                                            {course.instructor.firstName?.charAt(0)}
-                                            {course.instructor.lastName?.charAt(0)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-medium">
-                                            {course.instructor.firstName} {course.instructor.lastName}
-                                        </p>
-                                        {course.instructor.bio && (
-                                            <p className="text-sm text-muted-foreground mt-2">
-                                                {course.instructor.bio}
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            </div>
+                            ))}
+                        </div>
+                    )}
+                    
+                </CardContent>
+            </Card>
         </div>
     );
-};
-
-export default CourseDetailPage;
+}

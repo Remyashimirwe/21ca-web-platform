@@ -49,20 +49,16 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
     
     const userRole = user?.publicMetadata?.role as string || 'user';
 
-    // Navigation items based on roles
     const navigationItems: NavigationItem[] = [
-        // Common items for all users
         {
             title: 'Dashboard',
             href: '/dashboard',
             icon: Home,
             roles: ['user', 'instructor', 'admin', 'partner']
         },
-        
-        // User/Student specific
         {
             title: 'My Courses',
-            href: '/courses/my-courses',
+            href: '/my-courses',
             icon: BookOpen,
             roles: ['user']
         },
