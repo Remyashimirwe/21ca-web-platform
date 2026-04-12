@@ -1,7 +1,6 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import CourseLearningPage from '@/components/courses/CourseLearningPage';
 
 interface Props {
@@ -27,7 +26,6 @@ function serializeCourse(course: any) {
                 ...lesson,
                 createdAt: lesson.createdAt ? lesson.createdAt.toISOString() : null,
                 updatedAt: lesson.updatedAt ? lesson.updatedAt.toISOString() : null,
-                videoUrl: lesson.videoUrl || '',
             })),
         })),
     };
@@ -93,23 +91,21 @@ export default async function MyCourseLearningPage({ params }: Props) {
     }
 
     return (
-        <DashboardLayout>
-            <div className="w-full min-h-[calc(100vh-4rem)]">
-                <CourseLearningPage
-                    course={serializeCourse(enrollment.course)}
-                    enrollment={{
-                        id: enrollment.id,
-                        progress: enrollment.progress,
-                        status: enrollment.status,
-                        currentLesson: enrollment.currentLesson,
-                    }}
-                    lessonProgress={enrollment.lessonProgress.map((item) => ({
-                        lessonId: item.lessonId,
-                        isCompleted: item.isCompleted,
-                        watchTime: item.watchTime,
-                    }))}
-                />
-            </div>
-        </DashboardLayout>
+        <div className="w-full min-h-[calc(100vh-4rem)]">
+            <CourseLearningPage
+                course={serializeCourse(enrollment.course)}
+                enrollment={{
+                    id: enrollment.id,
+                    progress: enrollment.progress,
+                    status: enrollment.status,
+                    currentLesson: enrollment.currentLesson,
+                }}
+                lessonProgress={enrollment.lessonProgress.map((item) => ({
+                    lessonId: item.lessonId,
+                    isCompleted: item.isCompleted,
+                    watchTime: item.watchTime,
+                }))}
+            />
+        </div>
     );
 }

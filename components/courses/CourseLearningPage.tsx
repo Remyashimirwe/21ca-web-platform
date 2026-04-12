@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     BookOpen,
@@ -20,8 +20,11 @@ import {
     Users,
     Star,
     ArrowLeft,
-    MoveRight,
     SkipForward,
+    SkipBack,
+    Lock,
+    Maximize2,
+    Minimize2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -115,11 +118,15 @@ function getLessonIcon(type: LessonType) {
 
 export default function CourseLearningPage({ course, enrollment, lessonProgress }: Props) {
     const router = useRouter();
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+
     const [activeLessonId, setActiveLessonId] = useState<string>(
         enrollment.currentLesson || course.modules?.[0]?.lessons?.[0]?.id || ''
     );
     const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [watchTime, setWatchTime] = useState<number>(0);
 
     const modules = useMemo(
         () => (course.modules || []).slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
@@ -139,6 +146,11 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         return flatLessons[0] || null;
     }, [modules, activeLessonId, flatLessons]);
 
+    const activeIndex = useMemo(
+        () => flatLessons.findIndex((lesson) => lesson.id === activeLesson?.id),
+        [flatLessons, activeLesson]
+    );
+
     const activeModule = useMemo(() => {
         return modules.find((mod) => mod.lessons?.some((lesson) => lesson.id === activeLesson?.id)) || modules[0] || null;
     }, [modules, activeLesson]);
@@ -151,6 +163,8 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount) || 0);
 
     const saveProgress = async (lessonId: string, payload: { isCompleted?: boolean; watchTime?: number }) => {
+        if (!lessonId) return;
+
         try {
             setSaving(true);
             await fetch('/api/my-courses/progress', {
@@ -162,33 +176,127 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                     ...payload,
                 }),
             });
+        } catch (error) {
+            console.error('Failed to save progress:', error);
         } finally {
             setSaving(false);
         }
     };
+
+    const isLessonUnlocked = (lessonIndex: number) => {
+        if (lessonIndex === 0) return true;
+        const previousLesson = flatLessons[lessonIndex - 1];
+        return completedIds.has(previousLesson.id);
+    };
+
+    const goToLesson = async (lessonId: string) => {
+        if (activeLesson?.id) {
+            await saveProgress(activeLesson.id, { watchTime });
+        }
+        setActiveLessonId(lessonId);
+    };
+
+    const goNext = async () => {
+        const next = flatLessons[activeIndex + 1];
+        if (next) await goToLesson(next.id);
+    };
+
+    const goPrevious = async () => {
+        const prev = flatLessons[activeIndex - 1];
+        if (prev) await goToLesson(prev.id);
+    };
+
+    const markComplete = async () => {
+        if (!activeLesson?.id) return;
+        await saveProgress(activeLesson.id, { isCompleted: true, watchTime });
+        const next = flatLessons[activeIndex + 1];
+        if (next) setActiveLessonId(next.id);
+    };
+
+    const toggleFullscreen = async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+                setIsFullscreen(true);
+            } else {
+                await document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        } catch (error) {
+            console.error('Fullscreen toggle failed:', error);
+        }
+    };
+
+    useEffect(() => {
+        const onFullscreenChange = () => {
+            setIsFullscreen(Boolean(document.fullscreenElement));
+        };
+
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    }, []);
+
+    useEffect(() => {
+        if (!activeLesson?.id) return;
+        setWatchTime(watchedMap.get(activeLesson.id) || 0);
+    }, [activeLesson?.id, watchedMap]);
 
     useEffect(() => {
         if (!activeLesson?.id) return;
 
         const currentWatchTime = watchedMap.get(activeLesson.id) || 0;
         const timer = window.setInterval(() => {
+            const nextWatchTime = currentWatchTime + 10;
+            setWatchTime(nextWatchTime);
             saveProgress(activeLesson.id, {
-                watchTime: currentWatchTime + 10,
+                watchTime: nextWatchTime,
             });
         }, 10000);
 
         return () => window.clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeLesson?.id]);
 
-    const markComplete = async () => {
-        if (!activeLesson?.id) return;
-        await saveProgress(activeLesson.id, { isCompleted: true });
-    };
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || activeLesson?.type !== 'VIDEO') return;
 
-    const nextLesson = useMemo(() => {
-        const idx = flatLessons.findIndex((l) => l.id === activeLesson?.id);
-        return idx >= 0 ? flatLessons[idx + 1] || null : null;
-    }, [flatLessons, activeLesson]);
+        const handleTimeUpdate = () => {
+            const current = video.currentTime || 0;
+            const duration = video.duration || 0;
+
+            if (duration > 0) {
+                const watchedPercent = (current / duration) * 100;
+                const currentSeconds = Math.floor(current);
+                setWatchTime(currentSeconds);
+
+                saveProgress(activeLesson.id, {
+                    watchTime: currentSeconds,
+                    isCompleted: watchedPercent >= 95,
+                });
+            }
+        };
+
+        const handleEnded = () => {
+            saveProgress(activeLesson.id, {
+                watchTime: Math.floor(video.duration || 0),
+                isCompleted: true,
+            });
+
+            const next = flatLessons[activeIndex + 1];
+            if (next) {
+                setTimeout(() => setActiveLessonId(next.id), 500);
+            }
+        };
+
+        video.addEventListener('timeupdate', handleTimeUpdate);
+        video.addEventListener('ended', handleEnded);
+
+        return () => {
+            video.removeEventListener('timeupdate', handleTimeUpdate);
+            video.removeEventListener('ended', handleEnded);
+        };
+    }, [activeLesson?.id, activeLesson?.type, activeIndex, flatLessons]);
 
     return (
         <div className="min-h-[calc(100vh-4rem)] w-full bg-background">
@@ -265,21 +373,28 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
 
                                             {open && (
                                                 <div className="border-t p-2 space-y-1">
-                                                    {lessons.map((lesson) => {
+                                                    {lessons.map((lesson, lessonIndex) => {
                                                         const isActive = lesson.id === activeLesson?.id;
                                                         const isDone = completedIds.has(lesson.id);
+                                                        const locked = !isLessonUnlocked(
+                                                            flatLessons.findIndex((l) => l.id === lesson.id)
+                                                        );
 
                                                         return (
                                                             <button
                                                                 key={lesson.id}
-                                                                onClick={() => setActiveLessonId(lesson.id)}
+                                                                onClick={() => !locked && goToLesson(lesson.id)}
+                                                                disabled={locked}
                                                                 className={cn(
                                                                     'w-full flex items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors',
-                                                                    isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60'
+                                                                    isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
+                                                                    locked && 'opacity-60 cursor-not-allowed'
                                                                 )}
                                                             >
                                                                 <div className="mt-0.5 flex-shrink-0">
-                                                                    {isDone ? (
+                                                                    {locked ? (
+                                                                        <Lock className="h-4 w-4 text-muted-foreground" />
+                                                                    ) : isDone ? (
                                                                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                                     ) : (
                                                                         <Circle className="h-4 w-4 text-muted-foreground" />
@@ -297,6 +412,11 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                                                                     <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                                                         {lesson.description || 'Lesson content'}
                                                                     </p>
+                                                                    {locked ? (
+                                                                        <p className="text-[11px] text-muted-foreground mt-1">
+                                                                            Complete the previous lesson to unlock
+                                                                        </p>
+                                                                    ) : null}
                                                                 </div>
                                                             </button>
                                                         );
@@ -316,7 +436,7 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                         <CardContent className="p-0">
                             <div className="aspect-video bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
                                 {activeLesson?.type === 'VIDEO' && activeLesson.videoUrl ? (
-                                    <video controls className="w-full h-full object-cover">
+                                    <video ref={videoRef} controls className="w-full h-full object-cover">
                                         <source src={activeLesson.videoUrl} />
                                     </video>
                                 ) : (
@@ -350,16 +470,31 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                                     </h2>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <Button variant="outline" onClick={() => router.push('/my-courses')}>
                                         Leave Course
                                     </Button>
-                                    {nextLesson ? (
-                                        <Button onClick={() => setActiveLessonId(nextLesson.id)}>
-                                            Next Lesson
-                                            <SkipForward className="h-4 w-4 ml-2" />
-                                        </Button>
-                                    ) : null}
+                                    <Button variant="outline" onClick={goPrevious} disabled={activeIndex <= 0}>
+                                        <SkipBack className="h-4 w-4 mr-2" />
+                                        Previous
+                                    </Button>
+                                    <Button onClick={goNext} disabled={activeIndex < 0 || activeIndex >= flatLessons.length - 1}>
+                                        Next Lesson
+                                        <SkipForward className="h-4 w-4 ml-2" />
+                                    </Button>
+                                    <Button variant="outline" onClick={toggleFullscreen}>
+                                        {isFullscreen ? (
+                                            <>
+                                                Exit Full Screen
+                                                <Minimize2 className="h-4 w-4 ml-2" />
+                                            </>
+                                        ) : (
+                                            <>
+                                                Full Screen
+                                                <Maximize2 className="h-4 w-4 ml-2" />
+                                            </>
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
 
@@ -413,9 +548,6 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                                     <Button onClick={markComplete} disabled={saving || !activeLesson}>
                                         {saving ? 'Saving...' : 'Mark as Complete'}
                                         <CheckCircle2 className="h-4 w-4 ml-2" />
-                                    </Button>
-                                    <Button variant="outline" onClick={() => saveProgress(activeLesson?.id || '', { watchTime: (watchedMap.get(activeLesson?.id || '') || 0) + 30 })}>
-                                        Save Progress
                                     </Button>
                                 </div>
                             </div>
