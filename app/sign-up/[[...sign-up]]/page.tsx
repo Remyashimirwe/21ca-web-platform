@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Shield,
@@ -18,6 +19,8 @@ import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
   const { theme, setTheme } = useTheme();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect_url") || "/dashboard";
 
   const getClerkAppearance = () => {
     const baseAppearance = {
@@ -184,8 +187,11 @@ export default function SignUpPage() {
               <div className="overflow-hidden rounded-[1.75rem] border border-border/60 bg-background/80 p-3 shadow-2xl backdrop-blur-xl sm:p-5">
                 <SignUp
                   appearance={getClerkAppearance()}
-                  redirectUrl="/dashboard"
+                  routing="path"
+                  path="/sign-up"
                   signInUrl="/sign-in"
+                  forceRedirectUrl={redirectUrl}
+                  fallbackRedirectUrl={redirectUrl}
                 />
               </div>
 

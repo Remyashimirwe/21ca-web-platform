@@ -3,32 +3,33 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+    ArrowLeft,
+    ArrowRight,
+    BadgeInfo,
+    BarChart3,
     BookOpen,
     CheckCircle2,
-    Circle,
-    Clock,
-    FileText,
-    HelpCircle,
-    ClipboardList,
-    Video,
-    BadgeInfo,
-    Play,
     ChevronDown,
     ChevronRight,
+    Circle,
+    Clock,
+    ClipboardList,
+    FileText,
+    HelpCircle,
     Layers3,
-    BarChart3,
-    Users,
-    Star,
-    ArrowLeft,
-    SkipForward,
-    SkipBack,
     Lock,
     Maximize2,
     Minimize2,
+    Play,
+    SkipBack,
+    SkipForward,
+    Star,
+    Users,
+    Video,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type LessonType = 'VIDEO' | 'TEXT' | 'QUIZ' | 'ASSIGNMENT' | 'LIVE_SESSION';
@@ -56,11 +57,11 @@ type Module = {
 type Course = {
     id: string;
     title: string;
-    slug: string;
+    slug?: string;
     description?: string | null;
     shortDescription?: string | null;
     thumbnail?: string | null;
-    price: number | string;
+    price: number | string | null;
     currency?: string | null;
     level?: string | null;
     duration?: number | null;
@@ -129,7 +130,10 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     const [watchTime, setWatchTime] = useState<number>(0);
 
     const modules = useMemo(
-        () => (course.modules || []).slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+        () =>
+            (course.modules || [])
+                .slice()
+                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
         [course.modules]
     );
 
@@ -152,17 +156,34 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     );
 
     const activeModule = useMemo(() => {
-        return modules.find((mod) => mod.lessons?.some((lesson) => lesson.id === activeLesson?.id)) || modules[0] || null;
+        return (
+            modules.find((mod) =>
+                mod.lessons?.some((lesson) => lesson.id === activeLesson?.id)
+            ) || modules[0] || null
+        );
     }, [modules, activeLesson]);
 
-    const completedIds = new Set(lessonProgress.filter((item) => item.isCompleted).map((item) => item.lessonId));
-    const watchedMap = new Map(lessonProgress.map((item) => [item.lessonId, item.watchTime]));
+    const completedIds = useMemo(
+        () => new Set(lessonProgress.filter((item) => item.isCompleted).map((item) => item.lessonId)),
+        [lessonProgress]
+    );
+
+    const watchedMap = useMemo(
+        () => new Map(lessonProgress.map((item) => [item.lessonId, item.watchTime] as const)),
+        [lessonProgress]
+    );
+
     const courseCompletion = enrollment.progress || 0;
 
-    const formatCurrency = (amount: number | string, currency = 'USD') =>
-        new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(amount) || 0);
+    const formatCurrency = (amount: number | string | null, currency = 'USD') => {
+        const safeAmount = Number(amount ?? 0);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(safeAmount);
+    };
 
-    const saveProgress = async (lessonId: string, payload: { isCompleted?: boolean; watchTime?: number }) => {
+    const saveProgress = async (
+        lessonId: string,
+        payload: { isCompleted?: boolean; watchTime?: number }
+    ) => {
         if (!lessonId) return;
 
         try {
@@ -184,9 +205,9 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     };
 
     const isLessonUnlocked = (lessonIndex: number) => {
-        if (lessonIndex === 0) return true;
+        if (lessonIndex <= 0) return true;
         const previousLesson = flatLessons[lessonIndex - 1];
-        return completedIds.has(previousLesson.id);
+        return previousLesson ? completedIds.has(previousLesson.id) : true;
     };
 
     const goToLesson = async (lessonId: string) => {
@@ -248,9 +269,7 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         const timer = window.setInterval(() => {
             const nextWatchTime = currentWatchTime + 10;
             setWatchTime(nextWatchTime);
-            saveProgress(activeLesson.id, {
-                watchTime: nextWatchTime,
-            });
+            saveProgress(activeLesson.id, { watchTime: nextWatchTime });
         }, 10000);
 
         return () => window.clearInterval(timer);
@@ -373,12 +392,11 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
 
                                             {open && (
                                                 <div className="border-t p-2 space-y-1">
-                                                    {lessons.map((lesson, lessonIndex) => {
+                                                    {lessons.map((lesson) => {
                                                         const isActive = lesson.id === activeLesson?.id;
                                                         const isDone = completedIds.has(lesson.id);
-                                                        const locked = !isLessonUnlocked(
-                                                            flatLessons.findIndex((l) => l.id === lesson.id)
-                                                        );
+                                                        const lessonIndex = flatLessons.findIndex((l) => l.id === lesson.id);
+                                                        const locked = !isLessonUnlocked(lessonIndex);
 
                                                         return (
                                                             <button

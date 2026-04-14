@@ -9,23 +9,27 @@ datasource db {
 
 // User model - syncs with Clerk
 model User {
-  id                 String   @id @default(cuid())
-  clerkId            String   @unique
-  email              String   @unique
+  id                 String  @id @default(cuid())
+  clerkId            String  @unique
+  email              String  @unique
   firstName          String?
   lastName           String?
   imageUrl           String?
-  role               Role     @default(USER)
+  role               Role    @default(USER)
   bio                String?
   title              String?
   website            String?
   socialLinks        Json?
-  isActive           Boolean  @default(true)
-  emailNotifications Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  isActive           Boolean @default(true)
+  emailNotifications Boolean @default(true)
 
-  // Relationships
+  isPremium        Boolean      @default(false)
+  premiumExpiresAt DateTime?
+  premiumPlan      PremiumPlan?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   instructedCourses Course[]
   enrollments       Enrollment[]
   reviews           Review[]
@@ -209,11 +213,13 @@ model Enrollment {
   id            String           @id @default(cuid())
   enrolledAt    DateTime         @default(now())
   completedAt   DateTime?
-  progress      Int              @default(0) // percentage
+  progress      Int              @default(0)
   status        EnrollmentStatus @default(ACTIVE)
-  currentLesson String? // current lesson ID
+  currentLesson String?
 
-  // Relationships
+  paymentStatus  EnrollmentPaymentStatus @default(PENDING)
+  transactionRef String?
+
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
   course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -229,6 +235,14 @@ enum EnrollmentStatus {
   COMPLETED
   DROPPED
   SUSPENDED
+}
+
+enum EnrollmentPaymentStatus {
+  PENDING
+  PAID
+  FREE
+  FAILED
+  REFUNDED
 }
 
 // Track lesson progress for each enrollment
@@ -415,4 +429,10 @@ enum MessageType {
   DIRECT
   COURSE_DISCUSSION
   SUPPORT
+}
+
+enum PremiumPlan {
+  MONTHLY
+  ANNUAL
+  LIFETIME
 }

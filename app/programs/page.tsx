@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { BookOpen, Users, Star, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,9 +44,12 @@ type CategoryGroup = {
 
 export default function ProgramsPage() {
     const router = useRouter();
+    const { isSignedIn } = useUser();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [enrollingId, setEnrollingId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategoryId, setSelectedCategoryId] = useState('all');
 
     useEffect(() => {
         const loadCourses = async () => {
@@ -70,10 +74,48 @@ export default function ProgramsPage() {
         loadCourses();
     }, []);
 
+    const categories = useMemo(() => {
+        const map = new Map<string, { id: string; name: string }>();
+
+        for (const course of courses) {
+            const id = course.category?.id || 'uncategorized';
+            const name = course.category?.name || 'Uncategorized';
+            if (!map.has(id)) {
+                map.set(id, { id, name });
+            }
+        }
+
+        return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }, [courses]);
+
+    const filteredCourses = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+
+        return courses.filter((course) => {
+            const matchesCategory =
+                selectedCategoryId === 'all' ||
+                (course.category?.id || 'uncategorized') === selectedCategoryId;
+
+            if (!matchesCategory) return false;
+
+            if (!normalizedSearch) return true;
+
+            const instructorName = `${course.instructor?.firstName || ''} ${course.instructor?.lastName || ''}`.toLowerCase();
+
+            return (
+                course.title?.toLowerCase().includes(normalizedSearch) ||
+                course.shortDescription?.toLowerCase().includes(normalizedSearch) ||
+                course.description?.toLowerCase().includes(normalizedSearch) ||
+                course.category?.name?.toLowerCase().includes(normalizedSearch) ||
+                instructorName.includes(normalizedSearch)
+            );
+        });
+    }, [courses, searchTerm, selectedCategoryId]);
+
     const groupedPrograms: CategoryGroup[] = useMemo(() => {
         const map = new Map<string, CategoryGroup>();
 
-        for (const course of courses) {
+        for (const course of filteredCourses) {
             const categoryId = course.category?.id || 'uncategorized';
             const existing = map.get(categoryId);
 
@@ -91,10 +133,15 @@ export default function ProgramsPage() {
         }
 
         return Array.from(map.values());
-    }, [courses]);
+    }, [filteredCourses]);
 
     const handleEnroll = async (courseId: string) => {
         try {
+            if (!isSignedIn) {
+                router.push('/sign-up');
+                return;
+            }
+
             setEnrollingId(courseId);
 
             const response = await fetch(`/api/courses/${courseId}/enroll`, {
@@ -103,6 +150,11 @@ export default function ProgramsPage() {
                     'Content-Type': 'application/json',
                 },
             });
+
+            if (response.status === 401) {
+                router.push('/sign-up');
+                return;
+            }
 
             const data = await response.json();
 
@@ -146,6 +198,28 @@ export default function ProgramsPage() {
                     </p>
                 </div>
 
+                <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                        type="text"
+                        placeholder="Search courses, instructor, category..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="md:col-span-2 h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
+                    <select
+                        value={selectedCategoryId}
+                        onChange={(e) => setSelectedCategoryId(e.target.value)}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                        <option value="all">All categories</option>
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                                {category.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -156,9 +230,9 @@ export default function ProgramsPage() {
                 ) : groupedPrograms.length === 0 ? (
                     <Card className="p-12 text-center">
                         <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <h2 className="text-xl font-semibold mb-2">No programs available yet</h2>
+                        <h2 className="text-xl font-semibold mb-2">No matching programs found</h2>
                         <p className="text-muted-foreground">
-                            Approved courses will appear here once admins publish them.
+                            Try changing your search text or category filter.
                         </p>
                     </Card>
                 ) : (

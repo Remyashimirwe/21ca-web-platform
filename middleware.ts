@@ -10,7 +10,9 @@ const isPublicRoute = createRouteMatcher([
     '/sign-in(.*)',
     '/sign-up(.*)',
     '/api/webhooks/(.*)',
-    '/partner(.*)', // Partner dashboard and all sub-routes are public
+    '/api/programs(.*)',
+    '/api/instructors(.*)',
+    '/partner(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {

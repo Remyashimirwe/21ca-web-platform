@@ -19,9 +19,37 @@ import {Button} from "@/components/ui/button";
 import { FaFacebookF, FaTwitter, FaLinkedinIn } from "react-icons/fa";
 import Link from "next/link";
 
+type DbCourse = {
+    id: string;
+    slug: string;
+    title: string;
+    thumbnail?: string | null;
+    price: number | string;
+    currency?: string | null;
+    averageRating?: number | string | null;
+    totalRatings?: number;
+    enrollmentCount?: number;
+    duration?: number | null;
+    instructor?: {
+        id: string;
+        firstName?: string | null;
+        lastName?: string | null;
+    } | null;
+};
+
+type DbInstructor = {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    imageUrl?: string | null;
+    title?: string | null;
+};
+
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [mounted, setMounted] = useState(false);
+    const [dbCourses, setDbCourses] = useState<DbCourse[]>([]);
+    const [dbInstructors, setDbInstructors] = useState<DbInstructor[]>([]);
 
     useEffect(() => {
         setMounted(true);
@@ -33,6 +61,46 @@ const HomePage = () => {
             setCurrentSlide((prev) => (prev + 1) % 2);
         }, 7000);
         return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        const loadPopularCourses = async () => {
+            try {
+                const response = await fetch('/api/programs');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data?.error || 'Failed to load popular courses');
+                }
+
+                setDbCourses(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error('Failed to load popular courses:', error);
+                setDbCourses([]);
+            }
+        };
+
+        loadPopularCourses();
+    }, []);
+
+    useEffect(() => {
+        const loadInstructors = async () => {
+            try {
+                const response = await fetch('/api/instructors');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data?.error || 'Failed to load instructors');
+                }
+
+                setDbInstructors(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error('Failed to load instructors:', error);
+                setDbInstructors([]);
+            }
+        };
+
+        loadInstructors();
     }, []);
 
     const carouselSlides = [
@@ -81,67 +149,28 @@ const HomePage = () => {
         },
     ];
 
-    const courses = [
-        {
-            title: "STEM Foundations for Young Innovators",
-            price: "$49.00",
-            rating: 4.9,
-            reviews: 234,
-            instructor: "Dr. Sarah Uwimana",
-            duration: "8 weeks",
-            students: 156,
-            image:
-                "https://images.unsplash.com/photo-1634951401794-6c84f593db82?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8RGlnaXRhbCUyMEZpbmFuY2lhbCUyMExpdGVyYWN5JTIwRXNzZW50aWFsc2FTVEVNJTIwRm91bmRhdGlvbnMlMjBmb3IlMjBZb3VuZyUyMElubm92YXRvcnN8ZW58MHx8MHx8fDA%3D",
-            level: "Beginner",
-        },
-        {
-            title: "Digital Financial Literacy Essentials",
-            price: "$39.00",
-            rating: 4.8,
-            reviews: 189,
-            instructor: "Jean Claude Mugabo",
-            duration: "6 weeks",
-            students: 203,
-            image:
-                "https://images.unsplash.com/photo-1634586720560-d5c61d450133?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8RGlnaXRhbCUyMEZpbmFuY2lhbCUyMExpdGVyYWN5JTIwRXNzZW50aWFsc3xlbnwwfHwwfHx8MA%3D%3D",
-            level: "Intermediate",
-        },
-        {
-            title: "Green Entrepreneurship Bootcamp",
-            price: "$89.00",
-            rating: 4.9,
-            reviews: 167,
-            instructor: "Grace Nyirahabimana",
-            duration: "12 weeks",
-            students: 98,
-            image:
-                "https://plus.unsplash.com/premium_photo-1723672919439-c37b99155360?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fGFmcmljYSUyMEdyZWVuJTIwRW50cmVwcmVuZXVyc2hpcCUyMEJvb3RjYW1wfGVufDB8fDB8fHww",
-            level: "Advanced",
-        },
-    ];
+    const courses = dbCourses.slice(0, 3).map((course) => ({
+        id: course.id,
+        slug: course.slug,
+        title: course.title,
+        price: new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: course.currency || 'USD',
+        }).format(Number(course.price) || 0),
+        rating: Number(course.averageRating) || 0,
+        reviews: course.totalRatings || 0,
+        instructor: `${course.instructor?.firstName || ''} ${course.instructor?.lastName || ''}`.trim() || "Unknown Instructor",
+        duration: course.duration ? `${course.duration}m` : "Flexible",
+        students: course.enrollmentCount || 0,
+        image: course.thumbnail || "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&auto=format&fit=crop&q=60",
+    }));
 
-    const instructors = [
-        {
-            name: "Dr. Sarah Uwimana",
-            designation: "STEM Education Lead",
-            image: "https://i.pinimg.com/1200x/79/1b/72/791b7253ab26fe8bdcb9374082f593be.jpg",
-        },
-        {
-            name: "Jean Claude Mugabo",
-            designation: "Digital Finance Expert",
-            image: "https://i.pinimg.com/1200x/2b/7a/01/2b7a01d9272a3f00a4b380110a87d3dd.jpg",
-        },
-        {
-            name: "Grace Nyirahabimana",
-            designation: "Sustainability Coach",
-            image: "https://i.pinimg.com/736x/79/2d/39/792d390d73b7d3dc456b6f3d31c7dbed.jpg",
-        },
-        {
-            name: "Emmanuel Nkurunziza",
-            designation: "Faith-Based Mentor",
-            image: "https://i.pinimg.com/1200x/2b/7a/01/2b7a01d9272a3f00a4b380110a87d3dd.jpg",
-        },
-    ];
+    const instructors = dbInstructors.map((instructor) => ({
+        id: instructor.id,
+        name: `${instructor.firstName || ''} ${instructor.lastName || ''}`.trim() || 'Unknown Instructor',
+        designation: instructor.title || 'Instructor',
+        image: instructor.imageUrl || "https://i.pinimg.com/1200x/2b/7a/01/2b7a01d9272a3f00a4b380110a87d3dd.jpg",
+    }));
 
     const testimonials = [
         {
@@ -499,86 +528,86 @@ const HomePage = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {courses.map((course, index) => (
-                            <div
-                                key={index}
-                                className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group hover:-translate-y-2"
-                            >
-                                <div className="relative overflow-hidden">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={course.image}
-                                        alt={course.title}
-                                        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                                    />
-                                    <div
-                                        className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"/>
-                                    <div
-                                        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
-                                        <div className="flex space-x-2">
-                                            <Button size="sm" className="rounded-full px-4">
-                                                Preview
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                className="rounded-full px-4"
-                                            >
-                                                Enroll
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h3 className="text-2xl font-bold text-primary">
-                                            {course.price}
-                                        </h3>
-                                        <div className="flex items-center space-x-1">
-                                            <div className="flex">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star
-                                                        key={i}
-                                                        size={14}
-                                                        className={
-                                                            i < Math.floor(course.rating)
-                                                                ? "fill-yellow-400 text-yellow-400"
-                                                                : "text-gray-300"
-                                                        }
-                                                    />
-                                                ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {courses.map((course) => (
+                                <div
+                                    key={course.id}
+                                    className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group hover:-translate-y-2"
+                                >
+                                    <div className="relative overflow-hidden">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={course.image}
+                                            alt={course.title}
+                                            className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                                        />
+                                        <div
+                                            className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"/>
+                                        <div
+                                            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0">
+                                            <div className="flex space-x-2">
+                                                <Button size="sm" className="rounded-full px-4">
+                                                    Preview
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    className="rounded-full px-4"
+                                                >
+                                                    Enroll
+                                                </Button>
                                             </div>
-                                            <span className="text-sm text-muted-foreground">
-                        ({course.reviews})
-                      </span>
                                         </div>
                                     </div>
 
-                                    <h4 className="text-lg font-bold text-foreground mb-4 line-clamp-2 group-hover:text-primary transition-colors duration-300">
-                                        {course.title}
-                                    </h4>
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-2xl font-bold text-primary">
+                                                {course.price}
+                                            </h3>
+                                            <div className="flex items-center space-x-1">
+                                                <div className="flex">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star
+                                                            key={i}
+                                                            size={14}
+                                                            className={
+                                                                i < Math.floor(course.rating)
+                                                                    ? "fill-yellow-400 text-yellow-400"
+                                                                    : "text-gray-300"
+                                                            }
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-sm text-muted-foreground">
+                            ({course.reviews})
+                          </span>
+                                            </div>
+                                        </div>
 
-                                    <div
-                                        className="flex items-center justify-between text-sm text-muted-foreground pt-4 border-t border-border">
-                                        <div className="flex items-center space-x-1">
-                                            <User size={14} className="text-primary"/>
-                                            <span>{course.instructor}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-1">
-                                            <Clock size={14} className="text-primary"/>
-                                            <span>{course.duration}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-1">
-                                            <Users size={14} className="text-primary"/>
-                                            <span>{course.students}</span>
+                                        <h4 className="text-lg font-bold text-foreground mb-4 line-clamp-2 group-hover:text-primary transition-colors duration-300">
+                                            {course.title}
+                                        </h4>
+
+                                        <div
+                                            className="flex items-center justify-between text-sm text-muted-foreground pt-4 border-t border-border">
+                                            <div className="flex items-center space-x-1">
+                                                <User size={14} className="text-primary"/>
+                                                <span>{course.instructor}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-1">
+                                                <Clock size={14} className="text-primary"/>
+                                                <span>{course.duration}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-1">
+                                                <Users size={14} className="text-primary"/>
+                                                <span>{course.students}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
 
                     <div className="text-center mt-12">
                         <Link href={"/programs"}>
