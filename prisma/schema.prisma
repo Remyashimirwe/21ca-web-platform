@@ -84,10 +84,11 @@ model Course {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  instructor   User          @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
   instructorId String
-  category     Category      @relation(fields: [categoryId], references: [id])
+  category     Category @relation(fields: [categoryId], references: [id])
   categoryId   String
+
   modules      Module[]
   enrollments  Enrollment[]
   reviews      Review[]
@@ -126,7 +127,6 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relationships
   courses Course[]
 
   @@map("categories")
@@ -140,7 +140,6 @@ model Tag {
   color     String?
   createdAt DateTime @default(now())
 
-  // Relationships
   courses CourseTag[]
 
   @@map("tags")
@@ -168,7 +167,6 @@ model Module {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relationships
   course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId String
   lessons  Lesson[]
@@ -181,21 +179,24 @@ model Lesson {
   id            String     @id @default(cuid())
   title         String
   description   String?
-  content       String? // rich text content
+  content       String?
   videoUrl      String?
-  videoDuration Int? // in seconds
+  videoDuration Int?
   type          LessonType @default(VIDEO)
   sortOrder     Int        @default(0)
   isPublished   Boolean    @default(false)
   isFree        Boolean    @default(false)
-  resources     Json? // downloadable resources
+  resources     Json?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  // Relationships
-  module   Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId String
-  progress LessonProgress[]
+
+  quizQuestions       QuizQuestion[]
+  assignmentQuestions AssignmentQuestion[]
+  liveSession         LiveSession?
+  lessonProgress      LessonProgress[]
 
   @@map("lessons")
 }
@@ -206,6 +207,105 @@ enum LessonType {
   QUIZ
   ASSIGNMENT
   LIVE_SESSION
+}
+
+// Quiz questions
+model QuizQuestion {
+  id         String       @id @default(cuid())
+  question   String
+  type       QuestionType @default(MULTIPLE_CHOICE)
+  points     Int          @default(1)
+  answerText String?
+  sortOrder  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String
+
+  options QuizOption[]
+
+  @@map("quiz_questions")
+}
+
+model QuizOption {
+  id        String   @id @default(cuid())
+  text      String
+  isCorrect Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+
+  @@map("quiz_options")
+}
+
+// Assignment questions
+model AssignmentQuestion {
+  id         String       @id @default(cuid())
+  title      String
+  type       QuestionType @default(SHORT_ANSWER)
+  points     Int          @default(1)
+  answerText String?
+  sortOrder  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String
+
+  options AssignmentOption[]
+
+  @@map("assignment_questions")
+}
+
+model AssignmentOption {
+  id        String   @id @default(cuid())
+  text      String
+  isCorrect Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  question   AssignmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+
+  @@map("assignment_options")
+}
+
+// Live sessions
+model LiveSession {
+  id               String           @id @default(cuid())
+  title            String
+  description      String?
+  date             DateTime
+  time             String
+  duration         Int              @default(60)
+  meetingLink      String?
+  calendarProvider CalendarProvider @default(NONE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String @unique
+
+  @@map("live_sessions")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+  CHECKBOX
+}
+
+enum CalendarProvider {
+  NONE
+  GOOGLE
+  MICROSOFT
 }
 
 // Student enrollment
@@ -249,12 +349,11 @@ enum EnrollmentPaymentStatus {
 model LessonProgress {
   id          String    @id @default(cuid())
   isCompleted Boolean   @default(false)
-  watchTime   Int       @default(0) // in seconds
+  watchTime   Int       @default(0)
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  // Relationships
   enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   enrollmentId String
   lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -267,13 +366,12 @@ model LessonProgress {
 // Course reviews
 model Review {
   id        String   @id @default(cuid())
-  rating    Int // 1-5 stars
+  rating    Int
   comment   String?
   isPublic  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -288,14 +386,13 @@ model Payment {
   id              String        @id @default(cuid())
   amount          Decimal
   currency        String        @default("USD")
-  paymentMethod   String // "stripe", "paypal", "mtn_momo", etc.
-  paymentIntentId String? // Stripe payment intent ID
+  paymentMethod   String
+  paymentIntentId String?
   status          PaymentStatus @default(PENDING)
   paidAt          DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  // Relationships
   user     User   @relation(fields: [userId], references: [id])
   userId   String
   course   Course @relation(fields: [courseId], references: [id])
@@ -324,7 +421,6 @@ model Assignment {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  // Relationships
   course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId    String
   creator     User         @relation(fields: [creatorId], references: [id])
@@ -338,14 +434,13 @@ model Assignment {
 model Submission {
   id          String           @id @default(cuid())
   content     String
-  attachments Json? // file URLs
+  attachments Json?
   points      Int?
   feedback    String?
   status      SubmissionStatus @default(SUBMITTED)
   submittedAt DateTime         @default(now())
   gradedAt    DateTime?
 
-  // Relationships
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   assignmentId String
   student      User       @relation(fields: [studentId], references: [id])
@@ -365,12 +460,11 @@ enum SubmissionStatus {
 // Certificates
 model Certificate {
   id            String    @id @default(cuid())
-  certificateId String    @unique // public certificate ID
+  certificateId String    @unique
   issuedAt      DateTime  @default(now())
   expiresAt     DateTime?
   isRevoked     Boolean   @default(false)
 
-  // Relationships
   user     User   @relation(fields: [userId], references: [id])
   userId   String
   course   Course @relation(fields: [courseId], references: [id])
@@ -390,7 +484,6 @@ model Notification {
   actionUrl String?
   createdAt DateTime         @default(now())
 
-  // Relationships
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
@@ -416,7 +509,6 @@ model Message {
   type      MessageType @default(DIRECT)
   createdAt DateTime    @default(now())
 
-  // Relationships
   recipient   User   @relation("UserMessages", fields: [recipientId], references: [id])
   recipientId String
   sender      User   @relation("SentMessages", fields: [senderId], references: [id])

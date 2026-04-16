@@ -3,23 +3,88 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
     _req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ courseId: string }> }
 ) {
     try {
-        const { id } = await params;
+        const { courseId } = await params;
 
-        if (!id) {
+        if (!courseId) {
             return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
         }
 
         const course = await prisma.course.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                title: true,
-                price: true,
-                currency: true,
-                status: true,
+            where: { id: courseId },
+            include: {
+                instructor: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        imageUrl: true,
+                        bio: true,
+                    },
+                },
+                category: true,
+                modules: {
+                    orderBy: {
+                        sortOrder: 'asc',
+                    },
+                    include: {
+                        lessons: {
+                            orderBy: {
+                                sortOrder: 'asc',
+                            },
+                            include: {
+                                quizQuestions: {
+                                    orderBy: {
+                                        sortOrder: 'asc',
+                                    },
+                                    include: {
+                                        options: {
+                                            orderBy: {
+                                                sortOrder: 'asc',
+                                            },
+                                        },
+                                    },
+                                },
+                                assignmentQuestions: {
+                                    orderBy: {
+                                        sortOrder: 'asc',
+                                    },
+                                    include: {
+                                        options: {
+                                            orderBy: {
+                                                sortOrder: 'asc',
+                                            },
+                                        },
+                                    },
+                                },
+                                liveSession: true,
+                            },
+                        },
+                    },
+                },
+                tags: {
+                    include: {
+                        tag: true,
+                    },
+                },
+                enrollments: {
+                    select: {
+                        id: true,
+                    },
+                },
+                reviews: {
+                    select: {
+                        id: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        enrollments: true,
+                        reviews: true,
+                    },
+                },
             },
         });
 
