@@ -14,16 +14,24 @@ export default function ConditionalNavbar() {
     '/instructor',
     '/messages',
     '/notifications',
-    '/my-courses'
+    '/my-courses',
+    '/payment',
+    '/premium',
+    '/courses/',
   ];
 
-  const shouldHideNavbar = hiddenRoutes.some(route =>
-      pathname?.startsWith(route)
+  const shouldHideNavbar = hiddenRoutes.some((route) =>
+    pathname?.startsWith(route)
   );
 
   if (shouldHideNavbar) {
     return null;
   }
 
-  return <Navbar />;
+  return (
+    <>
+      <div className="h-14 sm:h-16" aria-hidden="true" />
+      <Navbar />
+    </>
+  );
 }

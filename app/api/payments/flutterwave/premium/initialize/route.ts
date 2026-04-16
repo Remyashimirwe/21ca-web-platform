@@ -6,12 +6,22 @@ const premiumPrices: Record<string, number> = {
     MONTHLY: 25,
     ANNUAL: 200,
     LIFETIME: 500,
+
 };
 
 const supportedPlans = new Set(['MONTHLY', 'ANNUAL', 'LIFETIME']);
 
 export async function POST(req: NextRequest) {
     try {
+        const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+
+        if (!secretKey) {
+            return NextResponse.json(
+                { error: 'Flutterwave secret key is missing' },
+                { status: 500 }
+            );
+        }
+
         const { userId: clerkUserId } = await auth();
 
         if (!clerkUserId) {
@@ -72,16 +82,25 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+                Authorization: `Bearer ${secretKey}`,
             },
             body: JSON.stringify(paymentPayload),
+        })
+        .catch((err) => {
+            console.log('Flutterwave error', err);
+            throw new Error('Flutterwave error');
         });
 
         const data = await flutterwaveRes.json();
 
         if (!flutterwaveRes.ok) {
             return NextResponse.json(
-                { error: data?.message || 'Failed to initialize payment' },
+                {
+                    error:
+                        data?.message ||
+                        data?.meta?.authorization ||
+                        'Failed to initialize payment',
+                },
                 { status: 400 }
             );
         }

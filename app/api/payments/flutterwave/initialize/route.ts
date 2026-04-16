@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
@@ -63,11 +62,20 @@ export async function POST(req: NextRequest) {
 
         const txRef = `course_${course.id}_${dbUser.id}_${Date.now()}`;
 
+        const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+
+        if (!secretKey) {
+            return NextResponse.json(
+                { error: 'Flutterwave secret key is missing' },
+                { status: 500 }
+            );
+        }
+
         const paymentResponse = await fetch('https://api.flutterwave.com/v3/payments', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${flutterwaveSecretKey}`,
+                Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
             },
             body: JSON.stringify({
                 tx_ref: txRef,

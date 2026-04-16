@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-const premiumPricing: Record<string, { durationDays: number; amount: number }> = {
-    MONTHLY: { durationDays: 30, amount: 25 },
-    ANNUAL: { durationDays: 365, amount: 200 },
-    LIFETIME: { durationDays: 36500, amount: 500 },
+const premiumPricing: Record<string, { durationDays: number }> = {
+    MONTHLY: { durationDays: 30 },
+    ANNUAL: { durationDays: 365 },
+    LIFETIME: { durationDays: 36500 },
 };
 
 export async function POST(req: NextRequest) {
@@ -47,15 +47,6 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: 'Invalid premium tx_ref' }, { status: 400 });
             }
 
-            const expected = premiumPricing[planId];
-
-            if (amount !== expected.amount || currency !== 'USD') {
-                return NextResponse.json(
-                    { error: 'Premium payment mismatch' },
-                    { status: 400 }
-                );
-            }
-
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 select: { id: true },
@@ -68,30 +59,40 @@ export async function POST(req: NextRequest) {
             const expiresAt =
                 planId === 'LIFETIME'
                     ? null
-                    : new Date(Date.now() + expected.durationDays * 24 * 60 * 60 * 1000);
+                    : new Date(Date.now() + premiumPricing[planId].durationDays * 24 * 60 * 60 * 1000);
 
-            await prisma.$transaction([
-                prisma.user.update({
-                    where: { id: userId },
-                    data: {
-                        isPremium: true,
-                        premiumPlan: planId as any,
-                        premiumExpiresAt: expiresAt,
-                    },
-                }),
-                prisma.payment.create({
-                    data: {
-                        amount,
-                        currency,
-                        paymentMethod: 'flutterwave',
-                        paymentIntentId: flutterwavePaymentId,
-                        status: 'COMPLETED',
-                        paidAt,
-                        userId,
-                        courseId: userId,
-                    } as any,
-                }),
-            ]);
+            const existingPayment = await prisma.payment.findFirst({
+                where: {
+                    paymentIntentId: flutterwavePaymentId,
+                    userId,
+                },
+                select: { id: true },
+            });
+
+            if (!existingPayment) {
+                await prisma.$transaction([
+                    prisma.user.update({
+                        where: { id: userId },
+                        data: {
+                            isPremium: true,
+                            premiumPlan: planId as any,
+                            premiumExpiresAt: expiresAt,
+                        },
+                    }),
+                    prisma.payment.create({
+                        data: {
+                            amount,
+                            currency,
+                            paymentMethod: 'flutterwave',
+                            paymentIntentId: flutterwavePaymentId,
+                            status: 'COMPLETED',
+                            paidAt,
+                            userId,
+                            courseId: userId,
+                        } as any,
+                    }),
+                ]);
+            }
 
             return NextResponse.json({ success: true, premiumActivated: true });
         }

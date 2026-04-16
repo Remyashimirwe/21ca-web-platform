@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { flutterwaveSecretKey } from '@/lib/flutterwave';
-
-const premiumPricing: Record<string, { amount: number; durationDays: number }> = {
-    MONTHLY: { amount: 25, durationDays: 30 },
-    ANNUAL: { amount: 200, durationDays: 365 },
-    LIFETIME: { amount: 500, durationDays: 36500 },
-};
+import { getCurrencyByCountry } from '@/lib/flutterwave';
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,10 +12,43 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { planId } = (await req.json()) as { planId?: string };
+        const body = await req.json();
+        const { courseId, countryCode, currency: requestedCurrency, amount } = body as {
+            courseId?: string;
+            countryCode?: string;
+            currency?: string;
+            amount?: number;
+        };
 
-        if (!planId || !premiumPricing[planId]) {
-            return NextResponse.json({ error: 'Invalid premium plan' }, { status: 400 });
+        if (!courseId) {
+            return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
+        }
+
+        const course = await prisma.course.findUnique({
+            where: { id: courseId },
+            select: {
+                id: true,
+                title: true,
+                price: true,
+                currency: true,
+                status: true,
+                instructorId: true,
+            },
+        });
+
+        if (!course) {
+            return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+        }
+
+        if (course.status !== 'PUBLISHED') {
+            return NextResponse.json(
+                { error: 'This course is not available for enrollment yet' },
+                { status: 400 }
+            );
+        }
+
+        if (!course.price || Number(course.price) <= 0) {
+            return NextResponse.json({ error: 'Course is free' }, { status: 400 });
         }
 
         const dbUser = await prisma.user.findUnique({
@@ -32,32 +59,48 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const plan = premiumPricing[planId];
-        const txRef = `premium_${dbUser.id}_${planId}_${Date.now()}`;
+        const currency = (requestedCurrency || course.currency || getCurrencyByCountry(countryCode) || 'USD').toUpperCase();
+        const finalAmount = Number(amount || course.price);
+
+        if (!finalAmount || finalAmount <= 0) {
+            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+        }
+
+        const txRef = `course_${course.id}_${dbUser.id}_${Date.now()}`;
+
+        const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+
+        if (!secretKey) {
+            return NextResponse.json(
+                { error: 'Flutterwave secret key is missing' },
+                { status: 500 }
+            );
+        }
 
         const paymentResponse = await fetch('https://api.flutterwave.com/v3/payments', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${flutterwaveSecretKey}`,
+                Authorization: `Bearer ${secretKey}`,
             },
             body: JSON.stringify({
                 tx_ref: txRef,
-                amount: plan.amount,
-                currency: 'USD',
-                redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?type=premium&planId=${planId}&tx_ref=${txRef}`,
+                amount: finalAmount,
+                currency,
+                redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?courseId=${course.id}&tx_ref=${txRef}`,
                 customer: {
                     email: clerkUser.emailAddresses[0]?.emailAddress || dbUser.email,
                     name: `${clerkUser.firstName || dbUser.firstName || ''} ${clerkUser.lastName || dbUser.lastName || ''}`.trim(),
                 },
                 customizations: {
-                    title: `Premium ${planId}`,
-                    description: `Purchase ${planId} premium access`,
+                    title: course.title,
+                    description: `Payment for ${course.title}`,
                 },
                 meta: {
+                    courseId: course.id,
                     userId: dbUser.id,
-                    planId,
-                    type: 'premium',
+                    countryCode,
+                    currency,
                 },
             }),
         });
@@ -66,7 +109,7 @@ export async function POST(req: NextRequest) {
 
         if (!paymentResponse.ok) {
             return NextResponse.json(
-                { error: paymentData?.message || 'Failed to initialize premium payment' },
+                { error: paymentData?.message || 'Failed to initialize payment' },
                 { status: 500 }
             );
         }
@@ -74,13 +117,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             paymentLink: paymentData?.data?.link,
             txRef,
-            amount: plan.amount,
-            planId,
+            currency,
+            amount: finalAmount,
         });
     } catch (error) {
-        console.error('Premium initialize error:', error);
+        console.error('Flutterwave initialize error:', error);
         return NextResponse.json(
-            { error: 'Failed to initialize premium payment' },
+            { error: 'Failed to initialize payment' },
             { status: 500 }
         );
     }

@@ -51,7 +51,7 @@ export default function RootLayout({
                 disableTransitionOnChange
             >
                 <ConditionalNavbar />
-                <main className="pt-16 md:pt-16">
+                <main>
                     {children}
                 </main>
             </ThemeProvider>

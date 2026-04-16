@@ -3,53 +3,111 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import CourseDetailPage from '@/components/courses/CourseDetailPage';
 
-interface CoursePageProps {
+type PageProps = {
     params: {
         slug: string;
     };
-}
+};
 
-export async function generateMetadata({ params }: CoursePageProps) {
+type CourseDetailData = {
+    id: string;
+    title: string;
+    price: number | string | null;
+    currency?: string | null;
+};
+
+type CourseQueryResult = {
+    id: string;
+    title: string;
+    slug: string;
+    price: unknown;
+    discountPrice: unknown;
+    averageRating: unknown;
+    publishedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    shortDescription: string | null;
+    description: string | null;
+    thumbnail: string | null;
+    currency: string | null;
+    level: string | null;
+    duration: number | null;
+    enrollmentCount: number;
+    category: {
+        name: string;
+        slug: string;
+    } | null;
+    instructor: {
+        firstName: string | null;
+        lastName: string | null;
+        imageUrl: string | null;
+        bio: string | null;
+    } | null;
+    modules: Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        sortOrder: number | null;
+        createdAt: Date;
+        updatedAt: Date;
+        lessons: Array<{
+            id: string;
+            title: string;
+            description: string | null;
+            content: string | null;
+            videoUrl: string | null;
+            type: string;
+            sortOrder: number | null;
+            createdAt: Date;
+            updatedAt: Date;
+        }>;
+    }>;
+    _count: {
+        enrollments: number;
+        reviews: number;
+    };
+};
+
+export async function generateMetadata({ params }: PageProps) {
     const course = await prisma.course.findUnique({
         where: { slug: params.slug },
-        select: { title: true, shortDescription: true }
+        select: {
+            title: true,
+            shortDescription: true,
+        },
     });
 
     if (!course) {
         return {
-            title: 'Course Not Found'
+            title: 'Course Not Found',
         };
     }
 
     return {
         title: course.title,
-        description: course.shortDescription
+        description: course.shortDescription,
     };
 }
 
-function serializeCourse(course: any) {
+function toPrice(value: unknown): number | string | null {
+    if (value == null) return null;
+    if (typeof value === 'number' || typeof value === 'string') return value;
+    if (typeof value === 'object' && value !== null && 'toString' in value) {
+        return String(value);
+    }
+    return null;
+}
+
+function serializeCourse(course: CourseQueryResult): CourseDetailData {
     return {
-        ...course,
-        price: course.price?.toString?.() ?? course.price,
-        discountPrice: course.discountPrice?.toString?.() ?? course.discountPrice,
-        averageRating: course.averageRating?.toString?.() ?? course.averageRating,
-        publishedAt: course.publishedAt ? course.publishedAt.toISOString() : null,
-        createdAt: course.createdAt ? course.createdAt.toISOString() : null,
-        updatedAt: course.updatedAt ? course.updatedAt.toISOString() : null,
-        modules: (course.modules || []).map((module: any) => ({
-            ...module,
-            createdAt: module.createdAt ? module.createdAt.toISOString() : null,
-            updatedAt: module.updatedAt ? module.updatedAt.toISOString() : null,
-            lessons: (module.lessons || []).map((lesson: any) => ({
-                ...lesson,
-                createdAt: lesson.createdAt ? lesson.createdAt.toISOString() : null,
-                updatedAt: lesson.updatedAt ? lesson.updatedAt.toISOString() : null,
-            })),
-        })),
+        id: course.id,
+        title: course.title,
+        price: toPrice(course.price),
+        currency: course.currency,
     };
 }
 
-export default async function CoursePage({ params }: CoursePageProps) {
+export default async function CoursePage({ params }: PageProps) {
     const course = await prisma.course.findUnique({
         where: { slug: params.slug },
         include: {
@@ -87,5 +145,5 @@ export default async function CoursePage({ params }: CoursePageProps) {
         notFound();
     }
 
-    return <CourseDetailPage course={serializeCourse(course)} />;
+    return <CourseDetailPage course={serializeCourse(course as CourseQueryResult)} />;
 }

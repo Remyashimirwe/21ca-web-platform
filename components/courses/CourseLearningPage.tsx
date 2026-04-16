@@ -4,13 +4,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ArrowLeft,
-    ArrowRight,
     BadgeInfo,
     BarChart3,
     BookOpen,
     CheckCircle2,
-    ChevronDown,
-    ChevronRight,
     Circle,
     Clock,
     ClipboardList,
@@ -41,16 +38,16 @@ type Lesson = {
     content?: string | null;
     videoUrl?: string | null;
     type: LessonType;
-    sortOrder?: number;
-    isPublished?: boolean;
-    isFree?: boolean;
+    sortOrder?: number | null;
+    isPublished?: boolean | null;
+    isFree?: boolean | null;
 };
 
 type Module = {
     id: string;
     title: string;
     description?: string | null;
-    sortOrder?: number;
+    sortOrder?: number | null;
     lessons?: Lesson[];
 };
 
@@ -124,7 +121,6 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     const [activeLessonId, setActiveLessonId] = useState<string>(
         enrollment.currentLesson || course.modules?.[0]?.lessons?.[0]?.id || ''
     );
-    const [collapsedModules, setCollapsedModules] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [watchTime, setWatchTime] = useState<number>(0);
@@ -133,43 +129,48 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         () =>
             (course.modules || [])
                 .slice()
-                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+                .sort((a: Module, b: Module) => (a.sortOrder || 0) - (b.sortOrder || 0)),
         [course.modules]
     );
 
     const flatLessons = useMemo(
-        () => modules.flatMap((mod) => mod.lessons || []),
+        () => modules.flatMap((mod: Module) => mod.lessons || []),
         [modules]
     );
 
     const activeLesson = useMemo(() => {
         for (const mod of modules) {
-            const found = (mod.lessons || []).find((lesson) => lesson.id === activeLessonId);
+            const found = (mod.lessons || []).find((lesson: Lesson) => lesson.id === activeLessonId);
             if (found) return found;
         }
         return flatLessons[0] || null;
     }, [modules, activeLessonId, flatLessons]);
 
     const activeIndex = useMemo(
-        () => flatLessons.findIndex((lesson) => lesson.id === activeLesson?.id),
+        () => flatLessons.findIndex((lesson: Lesson) => lesson.id === activeLesson?.id),
         [flatLessons, activeLesson]
     );
 
     const activeModule = useMemo(() => {
         return (
-            modules.find((mod) =>
-                mod.lessons?.some((lesson) => lesson.id === activeLesson?.id)
+            modules.find((mod: Module) =>
+                mod.lessons?.some((lesson: Lesson) => lesson.id === activeLesson?.id)
             ) || modules[0] || null
         );
     }, [modules, activeLesson]);
 
     const completedIds = useMemo(
-        () => new Set(lessonProgress.filter((item) => item.isCompleted).map((item) => item.lessonId)),
+        () =>
+            new Set(
+                lessonProgress
+                    .filter((item: LessonProgressItem) => item.isCompleted)
+                    .map((item: LessonProgressItem) => item.lessonId)
+            ),
         [lessonProgress]
     );
 
     const watchedMap = useMemo(
-        () => new Map(lessonProgress.map((item) => [item.lessonId, item.watchTime] as const)),
+        () => new Map(lessonProgress.map((item: LessonProgressItem) => [item.lessonId, item.watchTime] as const)),
         [lessonProgress]
     );
 
@@ -204,11 +205,19 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         }
     };
 
-    const isLessonUnlocked = (lessonIndex: number) => {
-        if (lessonIndex <= 0) return true;
-        const previousLesson = flatLessons[lessonIndex - 1];
-        return previousLesson ? completedIds.has(previousLesson.id) : true;
-    };
+    useEffect(() => {
+        if (!activeLesson?.id) return;
+
+        const currentWatchTime = Number(watchedMap.get(activeLesson.id) ?? 0);
+        const timer = window.setInterval(() => {
+            const nextWatchTime = currentWatchTime + 10;
+            setWatchTime(nextWatchTime);
+            saveProgress(activeLesson.id, { watchTime: nextWatchTime });
+        }, 10000);
+
+        return () => window.clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeLesson?.id]);
 
     const goToLesson = async (lessonId: string) => {
         if (activeLesson?.id) {
@@ -238,10 +247,8 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         try {
             if (!document.fullscreenElement) {
                 await document.documentElement.requestFullscreen();
-                setIsFullscreen(true);
             } else {
                 await document.exitFullscreen();
-                setIsFullscreen(false);
             }
         } catch (error) {
             console.error('Fullscreen toggle failed:', error);
@@ -259,22 +266,8 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
 
     useEffect(() => {
         if (!activeLesson?.id) return;
-        setWatchTime(watchedMap.get(activeLesson.id) || 0);
+        setWatchTime(Number(watchedMap.get(activeLesson.id) ?? 0));
     }, [activeLesson?.id, watchedMap]);
-
-    useEffect(() => {
-        if (!activeLesson?.id) return;
-
-        const currentWatchTime = watchedMap.get(activeLesson.id) || 0;
-        const timer = window.setInterval(() => {
-            const nextWatchTime = currentWatchTime + 10;
-            setWatchTime(nextWatchTime);
-            saveProgress(activeLesson.id, { watchTime: nextWatchTime });
-        }, 10000);
-
-        return () => window.clearInterval(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeLesson?.id]);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -289,7 +282,7 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                 const currentSeconds = Math.floor(current);
                 setWatchTime(currentSeconds);
 
-                saveProgress(activeLesson.id, {
+                void saveProgress(activeLesson.id, {
                     watchTime: currentSeconds,
                     isCompleted: watchedPercent >= 95,
                 });
@@ -297,7 +290,7 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         };
 
         const handleEnded = () => {
-            saveProgress(activeLesson.id, {
+            void saveProgress(activeLesson.id, {
                 watchTime: Math.floor(video.duration || 0),
                 isCompleted: true,
             });
@@ -318,23 +311,44 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     }, [activeLesson?.id, activeLesson?.type, activeIndex, flatLessons]);
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] w-full bg-background">
-            <div className="border-b bg-card/70 backdrop-blur supports-[backdrop-filter]:bg-card/60 sticky top-0 z-20">
-                <div className="mx-auto w-full px-4 py-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <Button variant="ghost" size="sm" onClick={() => router.push('/my-courses')}>
-                            <ArrowLeft className="h-4 w-4 mr-2" />
+        <div
+            className={cn(
+                'min-h-[calc(100vh-4rem)] w-full bg-background',
+                isFullscreen && 'fixed inset-0 z-50 min-h-screen overflow-auto bg-background'
+            )}
+        >
+            <div
+                className={cn(
+                    'sticky top-0 z-30 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60',
+                    isFullscreen && 'border-white/10 bg-black/40 text-white'
+                )}
+            >
+                <div className="mx-auto flex w-full items-center justify-between gap-4 px-4 py-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push('/my-courses')}
+                            className={cn(
+                                'shrink-0',
+                                isFullscreen && 'text-white hover:bg-white/10 hover:text-white'
+                            )}
+                        >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
                             Back
                         </Button>
+
                         <div className="min-w-0">
-                            <h1 className="text-lg font-semibold truncate">{course.title}</h1>
-                            <p className="text-sm text-muted-foreground truncate">
+                            <h1 className={cn('truncate text-lg font-semibold', isFullscreen && 'text-white')}>
+                                {course.title}
+                            </h1>
+                            <p className={cn('truncate text-sm text-muted-foreground', isFullscreen && 'text-white/70')}>
                                 {course.shortDescription || course.description || 'Continue your learning journey'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-3">
+                    <div className="hidden items-center gap-3 md:flex">
                         <Badge variant="secondary" className="gap-1">
                             <Users className="h-3.5 w-3.5" />
                             {course._count?.enrollments || course.enrollmentCount || 0}
@@ -347,126 +361,50 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                             <BarChart3 className="h-3.5 w-3.5" />
                             {courseCompletion}% complete
                         </Badge>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={toggleFullscreen}
+                            className={cn(
+                                isFullscreen && 'border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white'
+                            )}
+                        >
+                            {isFullscreen ? (
+                                <>
+                                    <Minimize2 className="mr-2 h-4 w-4" />
+                                    Exit Full Screen
+                                </>
+                            ) : (
+                                <>
+                                    <Maximize2 className="mr-2 h-4 w-4" />
+                                    Full Screen
+                                </>
+                            )}
+                        </Button>
                     </div>
                 </div>
             </div>
 
-            <div className="w-full px-4 py-6 grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_340px] gap-6">
-                <aside className="space-y-4">
-                    <Card className="h-fit">
-                        <CardContent className="p-4 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="font-semibold">Course Content</h2>
-                                <Badge>{modules.length}</Badge>
-                            </div>
-
-                            <div className="space-y-2">
-                                {modules.map((mod) => {
-                                    const lessons = mod.lessons || [];
-                                    const completedCount = lessons.filter((lesson) => completedIds.has(lesson.id)).length;
-                                    const open = collapsedModules[mod.id] ?? true;
-
-                                    return (
-                                        <div key={mod.id} className="rounded-xl border bg-card">
-                                            <button
-                                                className="w-full flex items-center justify-between gap-3 p-3 text-left"
-                                                onClick={() =>
-                                                    setCollapsedModules((prev) => ({
-                                                        ...prev,
-                                                        [mod.id]: !open,
-                                                    }))
-                                                }
-                                            >
-                                                <div className="min-w-0">
-                                                    <p className="font-medium truncate">{mod.title}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {completedCount}/{lessons.length} lessons
-                                                    </p>
-                                                </div>
-                                                {open ? (
-                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                                ) : (
-                                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                                )}
-                                            </button>
-
-                                            {open && (
-                                                <div className="border-t p-2 space-y-1">
-                                                    {lessons.map((lesson) => {
-                                                        const isActive = lesson.id === activeLesson?.id;
-                                                        const isDone = completedIds.has(lesson.id);
-                                                        const lessonIndex = flatLessons.findIndex((l) => l.id === lesson.id);
-                                                        const locked = !isLessonUnlocked(lessonIndex);
-
-                                                        return (
-                                                            <button
-                                                                key={lesson.id}
-                                                                onClick={() => !locked && goToLesson(lesson.id)}
-                                                                disabled={locked}
-                                                                className={cn(
-                                                                    'w-full flex items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors',
-                                                                    isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60',
-                                                                    locked && 'opacity-60 cursor-not-allowed'
-                                                                )}
-                                                            >
-                                                                <div className="mt-0.5 flex-shrink-0">
-                                                                    {locked ? (
-                                                                        <Lock className="h-4 w-4 text-muted-foreground" />
-                                                                    ) : isDone ? (
-                                                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                                    ) : (
-                                                                        <Circle className="h-4 w-4 text-muted-foreground" />
-                                                                    )}
-                                                                </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                                        <span className="text-sm font-medium line-clamp-1">
-                                                                            {lesson.title}
-                                                                        </span>
-                                                                        <Badge variant="outline" className="text-[10px]">
-                                                                            {lesson.type}
-                                                                        </Badge>
-                                                                    </div>
-                                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                                                        {lesson.description || 'Lesson content'}
-                                                                    </p>
-                                                                    {locked ? (
-                                                                        <p className="text-[11px] text-muted-foreground mt-1">
-                                                                            Complete the previous lesson to unlock
-                                                                        </p>
-                                                                    ) : null}
-                                                                </div>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </aside>
-
+            <div className="mx-auto w-full px-4 py-6">
                 <main className="space-y-6">
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden border-border/60 shadow-sm">
                         <CardContent className="p-0">
-                            <div className="aspect-video bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                            <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/15 via-background to-primary/5">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.12),transparent_30%)]" />
                                 {activeLesson?.type === 'VIDEO' && activeLesson.videoUrl ? (
-                                    <video ref={videoRef} controls className="w-full h-full object-cover">
+                                    <video ref={videoRef} controls className="relative z-10 h-full w-full object-cover">
                                         <source src={activeLesson.videoUrl} />
                                     </video>
                                 ) : (
-                                    <div className="text-center p-8 max-w-2xl">
-                                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                                    <div className="relative z-10 flex h-full flex-col items-center justify-center p-8 text-center">
+                                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                                             {activeLesson ? getLessonIcon(activeLesson.type) : <BookOpen className="h-7 w-7" />}
                                         </div>
                                         <h2 className="text-2xl font-bold">
                                             {activeLesson?.title || 'Select a lesson'}
                                         </h2>
-                                        <p className="text-muted-foreground mt-2">
-                                            {activeLesson?.description || 'Pick a lesson from the sidebar to start learning.'}
+                                        <p className="mt-2 max-w-2xl text-muted-foreground">
+                                            {activeLesson?.description || 'Pick a lesson to start learning.'}
                                         </p>
                                     </div>
                                 )}
@@ -474,49 +412,49 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                         </CardContent>
                     </Card>
 
-                    <Card className="h-fit">
-                        <CardContent className="p-6 space-y-4">
-                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <Card className="border-border/60 shadow-sm">
+                        <CardContent className="space-y-5 p-6">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div>
-                                    <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <Badge variant="secondary">{activeLesson?.type || 'LESSON'}</Badge>
                                         {activeLesson?.isFree ? <Badge>Free</Badge> : null}
                                         {activeModule ? <Badge variant="outline">{activeModule.title}</Badge> : null}
                                     </div>
-                                    <h2 className="text-2xl font-bold mt-2">
+                                    <h2 className="mt-2 text-2xl font-bold">
                                         {activeLesson?.title || 'No lesson selected'}
                                     </h2>
                                 </div>
 
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="flex flex-wrap gap-2">
                                     <Button variant="outline" onClick={() => router.push('/my-courses')}>
                                         Leave Course
                                     </Button>
                                     <Button variant="outline" onClick={goPrevious} disabled={activeIndex <= 0}>
-                                        <SkipBack className="h-4 w-4 mr-2" />
+                                        <SkipBack className="mr-2 h-4 w-4" />
                                         Previous
                                     </Button>
                                     <Button onClick={goNext} disabled={activeIndex < 0 || activeIndex >= flatLessons.length - 1}>
                                         Next Lesson
-                                        <SkipForward className="h-4 w-4 ml-2" />
+                                        <SkipForward className="ml-2 h-4 w-4" />
                                     </Button>
                                     <Button variant="outline" onClick={toggleFullscreen}>
                                         {isFullscreen ? (
                                             <>
                                                 Exit Full Screen
-                                                <Minimize2 className="h-4 w-4 ml-2" />
+                                                <Minimize2 className="ml-2 h-4 w-4" />
                                             </>
                                         ) : (
                                             <>
                                                 Full Screen
-                                                <Maximize2 className="h-4 w-4 ml-2" />
+                                                <Maximize2 className="ml-2 h-4 w-4" />
                                             </>
                                         )}
                                     </Button>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                     <Clock className="h-4 w-4" />
                                     {course.duration ? `${course.duration} minutes` : 'Self paced'}
@@ -537,23 +475,23 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
 
                             <div className="space-y-4">
                                 {activeLesson?.type === 'TEXT' ? (
-                                    <div className="whitespace-pre-wrap text-sm leading-7 rounded-lg border p-4 bg-muted/20">
+                                    <div className="whitespace-pre-wrap rounded-2xl border bg-muted/20 p-5 text-sm leading-7">
                                         {activeLesson.content || 'No text content available for this lesson.'}
                                     </div>
                                 ) : activeLesson?.type === 'QUIZ' ? (
-                                    <div className="rounded-lg border p-4 bg-muted/20">
+                                    <div className="rounded-2xl border bg-muted/20 p-5">
                                         <p className="text-muted-foreground">This is a quiz lesson. Add quiz UI here.</p>
                                     </div>
                                 ) : activeLesson?.type === 'ASSIGNMENT' ? (
-                                    <div className="rounded-lg border p-4 bg-muted/20">
+                                    <div className="rounded-2xl border bg-muted/20 p-5">
                                         <p className="text-muted-foreground">This is an assignment lesson. Add submission UI here.</p>
                                     </div>
                                 ) : activeLesson?.type === 'LIVE_SESSION' ? (
-                                    <div className="rounded-lg border p-4 bg-muted/20">
+                                    <div className="rounded-2xl border bg-muted/20 p-5">
                                         <p className="text-muted-foreground">This lesson is a live session. Add meeting link / schedule here.</p>
                                     </div>
                                 ) : (
-                                    <div className="rounded-lg border p-4 bg-muted/20">
+                                    <div className="rounded-2xl border bg-muted/20 p-5">
                                         <p className="text-muted-foreground">
                                             {activeLesson?.videoUrl
                                                 ? 'Use the video player above to watch this lesson.'
@@ -565,59 +503,13 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                                 <div className="flex items-center gap-3">
                                     <Button onClick={markComplete} disabled={saving || !activeLesson}>
                                         {saving ? 'Saving...' : 'Mark as Complete'}
-                                        <CheckCircle2 className="h-4 w-4 ml-2" />
+                                        <CheckCircle2 className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                 </main>
-
-                <aside className="space-y-4">
-                    <Card>
-                        <CardContent className="p-4 space-y-4">
-                            <h3 className="font-semibold">Course Progress</h3>
-
-                            <div className="rounded-lg bg-muted/40 p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm text-muted-foreground">Completed</span>
-                                    <span className="text-sm font-medium">{courseCompletion}%</span>
-                                </div>
-                                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full bg-primary transition-all duration-300"
-                                        style={{ width: `${courseCompletion}%` }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-muted-foreground">Lessons</p>
-                                    <p className="font-semibold">{flatLessons.length}</p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-muted-foreground">Completed</p>
-                                    <p className="font-semibold">{completedIds.size}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-4 space-y-3">
-                            <h3 className="font-semibold">Instructor</h3>
-                            <div>
-                                <p className="font-medium">
-                                    {course.instructor?.firstName || ''} {course.instructor?.lastName || ''}
-                                </p>
-                                <p className="text-sm text-muted-foreground line-clamp-6">
-                                    {course.instructor?.bio || 'No instructor bio provided.'}
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </aside>
             </div>
         </div>
     );
