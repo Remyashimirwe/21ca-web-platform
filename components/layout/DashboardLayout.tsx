@@ -47,10 +47,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         }
     };
 
+    const isLearningPage = pathname?.startsWith('/my-courses/') && pathname.split('/').length >= 3;
+
     return (
         <div className="flex h-screen bg-background">
             {/* Mobile Backdrop */}
-            {isMobile && sidebarOpen && (
+            {isMobile && sidebarOpen && !isLearningPage && (
                 <div
                     className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
                     onClick={() => setSidebarOpen(false)}
@@ -58,30 +60,34 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             )}
 
             {/* Sidebar */}
-            <div className={cn(
-                "fixed left-0 top-0 z-50 h-full transition-transform duration-300",
-                isMobile && !sidebarOpen && "-translate-x-full",
-                isMobile ? "w-64" : sidebarCollapsed ? "w-16" : "w-64"
-            )}>
-                <Sidebar
-                    collapsed={!isMobile && sidebarCollapsed}
-                    onToggle={isMobile ? () => setSidebarOpen(false) : handleSidebarToggle}
-                />
-            </div>
+            {!isLearningPage && (
+                <div className={cn(
+                    "fixed left-0 top-0 z-50 h-full transition-transform duration-300",
+                    isMobile && !sidebarOpen && "-translate-x-full",
+                    isMobile ? "w-64" : sidebarCollapsed ? "w-16" : "w-64"
+                )}>
+                    <Sidebar
+                        collapsed={!isMobile && sidebarCollapsed}
+                        onToggle={isMobile ? () => setSidebarOpen(false) : handleSidebarToggle}
+                    />
+                </div>
+            )}
 
             {/* Main Content */}
             <div className={cn(
                 "flex-1 flex flex-col transition-all duration-300",
-                isMobile ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
+                isMobile || isLearningPage ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
             )}>
                 {/* Navbar */}
-                <Navbar
-                    onSidebarToggle={handleSidebarToggle}
-                    sidebarCollapsed={sidebarCollapsed}
-                />
+                {!isLearningPage && (
+                    <Navbar
+                        onSidebarToggle={handleSidebarToggle}
+                        sidebarCollapsed={sidebarCollapsed}
+                    />
+                )}
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-y-auto p-6">
+                <main className={cn("flex-1 overflow-y-auto", !isLearningPage && "p-6")}>
                     {children}
                 </main>
             </div>

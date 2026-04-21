@@ -33,15 +33,33 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+        const newThisWeek = await prisma.enrollment.count({
+            where: {
+                course: {
+                    instructorId: dbUser.id
+                },
+                enrolledAt: {
+                    gte: startOfWeek
+                }
+            }
+        });
+
         const totalRevenue = courses.reduce((sum, course) => {
             return sum + course.payments.reduce((paymentSum, payment) => {
                 return paymentSum + Number(payment.amount);
             }, 0);
         }, 0);
 
-        const totalStudents = courses.reduce((sum, course) => {
-            return sum + course.enrollmentCount;
-        }, 0);
+        const totalStudents = await prisma.enrollment.count({
+            where: {
+                course: {
+                    instructorId: dbUser.id
+                }
+            }
+        });
 
         const averageRating = courses.reduce((sum, course) => {
             return sum + (Number(course.averageRating) || 0);
@@ -59,7 +77,8 @@ export async function GET(req: NextRequest) {
             totalCourses,
             publishedCourses,
             draftCourses,
-            underReviewCourses
+            underReviewCourses,
+            newThisWeek
         });
     } catch (error) {
         console.error('Error fetching instructor stats:', error);

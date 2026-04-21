@@ -19,6 +19,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface CalendarEvent {
@@ -41,6 +50,19 @@ const CalendarPage = () => {
     const [showEventModal, setShowEventModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+    const [userRole, setUserRole] = useState<string | null>(null);
+
+    // New event form state
+    const [newEvent, setNewEvent] = useState({
+        title: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        startTime: '09:00',
+        endTime: '10:00',
+        type: 'other' as const,
+        location: '',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         fetchEvents();
@@ -49,7 +71,7 @@ const CalendarPage = () => {
     const fetchEvents = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/instructor/calendar');
+            const response = await fetch('/api/calendar/events');
             const data = await response.json();
             setEvents(Array.isArray(data) ? data.map((e: any) => ({
                 ...e,
@@ -136,24 +158,91 @@ const CalendarPage = () => {
             today.getFullYear() === year;
     };
 
+    const handleAddEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setIsSubmitting(true);
+            
+            const startDateTime = new Date(`${newEvent.date}T${newEvent.startTime}`);
+            const endDateTime = new Date(`${newEvent.date}T${newEvent.endTime}`);
+
+            if (endDateTime <= startDateTime) {
+                toast.error('End time must be after start time');
+                return;
+            }
+
+            const response = await fetch('/api/calendar/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: newEvent.title,
+                    description: newEvent.description,
+                    startTime: startDateTime.toISOString(),
+                    endTime: endDateTime.toISOString(),
+                    type: newEvent.type,
+                    location: newEvent.location
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to create event');
+            }
+
+            toast.success('Event created successfully');
+            setShowEventModal(false);
+            setNewEvent({
+                title: '',
+                description: '',
+                date: new Date().toISOString().split('T')[0],
+                startTime: '09:00',
+                endTime: '10:00',
+                type: 'other',
+                location: '',
+            });
+            fetchEvents();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const upcomingEvents = events
         .filter(e => new Date(e.startTime) >= new Date())
         .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
         .slice(0, 5);
 
+    useEffect(() => {
+        const fetchUserRole = async () => {
+            try {
+                const response = await fetch('/api/user/me');
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserRole(data.role.toLowerCase());
+                }
+            } catch (error) {
+                console.error('Failed to fetch user role:', error);
+            }
+        };
+        fetchUserRole();
+    }, []);
+
     return (
         <div className="space-y-6 pb-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">Calendar</h1>
-                    <p className="text-muted-foreground">Manage your schedule and upcoming events</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold">Calendar</h1>
+                        <p className="text-muted-foreground">Manage your schedule and upcoming events</p>
+                    </div>
+                    {userRole !== 'user' && (
+                        <Button onClick={() => setShowEventModal(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Event
+                        </Button>
+                    )}
                 </div>
-                <Button onClick={() => setShowEventModal(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Event
-                </Button>
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Main Calendar */}
@@ -336,7 +425,7 @@ const CalendarPage = () => {
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Assignments Due</span>
                                     <span className="font-bold">
-                                        {events.filter(e => e.type === 'assignment').length}
+                                        {events.filter(e => e.type === 'assignment' || e.type === 'deadline').length}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -350,6 +439,95 @@ const CalendarPage = () => {
                     </Card>
                 </div>
             </div>
+
+            {/* Add Event Modal */}
+            <Dialog open={showEventModal} onOpenChange={setShowEventModal}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Add New Event</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleAddEvent} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Title</label>
+                            <Input
+                                required
+                                value={newEvent.title}
+                                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                                placeholder="Event title"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Description</label>
+                            <Textarea
+                                value={newEvent.description}
+                                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                                placeholder="Event description"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Date</label>
+                                <Input
+                                    type="date"
+                                    required
+                                    value={newEvent.date}
+                                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Type</label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={newEvent.type}
+                                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                                >
+                                    <option value="meeting">Meeting</option>
+                                    <option value="live_session">Live Session</option>
+                                    <option value="assignment">Assignment</option>
+                                    <option value="deadline">Deadline</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Start Time</label>
+                                <Input
+                                    type="time"
+                                    required
+                                    value={newEvent.startTime}
+                                    onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">End Time</label>
+                                <Input
+                                    type="time"
+                                    required
+                                    value={newEvent.endTime}
+                                    onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Location / Link</label>
+                            <Input
+                                value={newEvent.location}
+                                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                                placeholder="Room number or meeting link"
+                            />
+                        </div>
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={() => setShowEventModal(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? 'Creating...' : 'Create Event'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Selected Date Events Modal */}
             {selectedDate && (

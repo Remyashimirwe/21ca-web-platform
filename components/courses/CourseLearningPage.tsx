@@ -25,8 +25,11 @@ import {
     Video,
     ExternalLink,
     AlertCircle,
+    CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -143,10 +146,21 @@ type LessonProgressItem = {
     watchTime: number;
 };
 
+type SubmissionItem = {
+    id: string;
+    assignmentId: string;
+    assignmentTitle: string;
+    status: string;
+    points?: number | null;
+    feedback?: string | null;
+    submittedAt: string;
+};
+
 type Props = {
     course: Course;
     enrollment: Enrollment;
     lessonProgress: LessonProgressItem[];
+    submissions: SubmissionItem[];
 };
 
 type VideoSource =
@@ -167,9 +181,9 @@ function getLessonIcon(type: LessonType) {
         case 'ASSIGNMENT':
             return <ClipboardList className="h-4 w-4" />;
         case 'LIVE_SESSION':
-            return <BadgeInfo className="h-4 w-4" />;
+            return <Video className="h-4 w-4" />;
         default:
-            return <Play className="h-4 w-4" />;
+            return <BookOpen className="h-4 w-4" />;
     }
 }
 
@@ -284,7 +298,7 @@ function getVideoSource(url?: string | null): VideoSource | null {
     return { kind: 'html5', url: `/${trimmed}` };
 }
 
-export default function CourseLearningPage({ course, enrollment, lessonProgress }: Props) {
+export default function CourseLearningPage({ course, enrollment, lessonProgress, submissions }: Props) {
     const router = useRouter();
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -293,9 +307,12 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     );
     const [saving, setSaving] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [watchTime, setWatchTime] = useState<number>(0);
-    const [quizAnswers, setQuizAnswers] = useState<Record<string, string[]>>({});
-    const [assignmentText, setAssignmentText] = useState<Record<string, string>>({});
+    const [quizAnswers, setQuizAnswers] = useState<Record<string, string | string[]>>({});
+    const [assignmentAnswers, setAssignmentAnswers] = useState<Record<string, string | string[]>>({});
+    const [submitting, setSubmitting] = useState(false);
+    const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set());
     const [videoError, setVideoError] = useState(false);
     const [isVideoReady, setIsVideoReady] = useState(false);
 
@@ -486,122 +503,432 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
         }
     };
 
-    const getQuizSelected = (questionId: string) => quizAnswers[questionId] || [];
-    const setQuizSelected = (questionId: string, values: string[]) => {
-        setQuizAnswers((prev) => ({ ...prev, [questionId]: values }));
+    const getQuizSelected = (questionId: string): string[] => {
+        const val = quizAnswers[questionId];
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') return [val];
+        return [];
+    };
+
+    const getQuizText = (questionId: string): string => {
+        const val = quizAnswers[questionId];
+        if (typeof val === 'string') return val;
+        return '';
+    };
+
+    const setQuizValue = (questionId: string, value: string | string[]) => {
+        setQuizAnswers((prev) => ({ ...prev, [questionId]: value }));
+    };
+
+    const getAssignmentSelected = (questionId: string): string[] => {
+        const val = assignmentAnswers[questionId];
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') return [val];
+        return [];
+    };
+
+    const getAssignmentText = (questionId: string): string => {
+        const val = assignmentAnswers[questionId];
+        if (typeof val === 'string') return val;
+        return '';
+    };
+
+    const setAssignmentValue = (questionId: string, value: string | string[]) => {
+        setAssignmentAnswers((prev) => ({ ...prev, [questionId]: value }));
+    };
+
+    const handleSubmitQuiz = async (lesson: Lesson) => {
+        if (!lesson.id) return;
+        try {
+            setSubmitting(true);
+            const response = await fetch('/api/my-courses/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    enrollmentId: enrollment.id,
+                    lessonId: lesson.id,
+                    type: 'QUIZ',
+                    answers: quizAnswers,
+                }),
+            });
+
+            if (response.ok) {
+                setSubmittedIds((prev) => new Set([...prev, lesson.id]));
+                await saveProgress(lesson.id, { isCompleted: true, watchTime });
+            }
+        } catch (error) {
+            console.error('Failed to submit quiz:', error);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleSubmitAssignment = async (lesson: Lesson) => {
+        if (!lesson.id) return;
+        try {
+            setSubmitting(true);
+            const response = await fetch('/api/my-courses/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    enrollmentId: enrollment.id,
+                    lessonId: lesson.id,
+                    type: 'ASSIGNMENT',
+                    answers: assignmentAnswers,
+                }),
+            });
+
+            if (response.ok) {
+                setSubmittedIds((prev) => new Set([...prev, lesson.id]));
+                await saveProgress(lesson.id, { isCompleted: true, watchTime });
+            }
+        } catch (error) {
+            console.error('Failed to submit assignment:', error);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const renderQuiz = (lesson: Lesson) => {
         const questions = lesson.quizQuestions || [];
+        const isSubmitted = submittedIds.has(lesson.id) || completedIds.has(lesson.id);
+        const submission = submissions.find(s => s.assignmentId === lesson.id || s.assignmentTitle.includes(lesson.id));
+
         if (!questions.length) {
-            return <p className="text-muted-foreground">No quiz questions available.</p>;
+            return (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="mb-4 rounded-full bg-muted p-4">
+                        <HelpCircle className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">No Questions Available</h3>
+                    <p className="text-sm text-muted-foreground">This quiz doesn't have any questions yet.</p>
+                </div>
+            );
         }
 
         return (
-            <div className="space-y-4">
-                {questions.map((question) => {
-                    const selected = getQuizSelected(question.id);
-                    const isCheckbox = question.type === 'CHECKBOX';
-                    const isSingle = question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE';
+            <div className="space-y-6">
+                <div className="flex items-center justify-between border-b pb-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-primary">Course Quiz</h3>
+                        <p className="text-sm text-muted-foreground">Answer all questions to complete this lesson.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {isSubmitted && (
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Submitted
+                            </Badge>
+                        )}
+                        <Badge variant="outline" className="px-3 py-1">
+                            {questions.length} Questions
+                        </Badge>
+                    </div>
+                </div>
 
-                    return (
-                        <div key={question.id} className="rounded-2xl border bg-background p-4">
-                            <div className="mb-3 flex items-start justify-between gap-3">
-                                <div>
-                                    <h4 className="font-semibold">{question.question}</h4>
-                                    <p className="text-xs text-muted-foreground">
-                                        {question.type.replace('_', ' ')} · {question.points} point(s)
-                                    </p>
-                                </div>
-                                <Badge variant="secondary">Quiz</Badge>
-                            </div>
-
-                            <div className="space-y-2">
-                                {(question.options || []).map((option) => {
-                                    const checked = selected.includes(option.id);
-
-                                    return (
-                                        <label
-                                            key={option.id}
-                                            className="flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 hover:bg-muted/30"
-                                        >
-                                            <input
-                                                type={isCheckbox ? 'checkbox' : 'radio'}
-                                                name={question.id}
-                                                checked={checked}
-                                                onChange={(e) => {
-                                                    if (isCheckbox) {
-                                                        const next = e.target.checked
-                                                            ? [...selected, option.id]
-                                                            : selected.filter((id) => id !== option.id);
-                                                        setQuizSelected(question.id, next);
-                                                    } else if (isSingle) {
-                                                        setQuizSelected(question.id, [option.id]);
-                                                    }
-                                                }}
-                                            />
-                                            <span>{option.text}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-
-                            {question.answerText ? (
-                                <p className="mt-3 text-xs text-muted-foreground">
-                                    Hint: {question.answerText}
-                                </p>
-                            ) : null}
+                {isSubmitted && submission && submission.status === 'GRADED' && (
+                    <Card className="bg-primary/5 border-primary/20 overflow-hidden">
+                        <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
+                            <span className="text-sm font-bold text-primary flex items-center">
+                                <Star className="mr-2 h-4 w-4 fill-primary" />
+                                Instructor Feedback
+                            </span>
+                            <Badge variant="secondary" className="bg-primary/20 text-primary border-none">
+                                {submission.points} Points Earned
+                            </Badge>
                         </div>
-                    );
-                })}
+                        <CardContent className="p-4">
+                            <p className="text-sm italic text-muted-foreground">
+                                "{submission.feedback || "Your submission has been reviewed. Great job!"}"
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
-                <Button onClick={() => void saveProgress(lesson.id, { isCompleted: true, watchTime })}>
-                    Submit Quiz
-                </Button>
+                <div className="space-y-6">
+                    {questions.map((question, qIdx) => {
+                        const selected = getQuizSelected(question.id);
+                        const textVal = getQuizText(question.id);
+                        const isCheckbox = question.type === 'CHECKBOX';
+                        const isSingle = question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE';
+                        const isText = question.type === 'SHORT_ANSWER' || question.type === 'ESSAY';
+
+                        return (
+                            <div key={question.id} className="group relative rounded-2xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
+                                <div className="mb-4 flex items-start justify-between gap-4">
+                                    <div className="flex gap-4">
+                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                                            {qIdx + 1}
+                                        </span>
+                                        <div>
+                                            <h4 className="text-base font-semibold leading-tight">{question.question}</h4>
+                                            <div className="mt-2 flex items-center gap-3">
+                                                <Badge variant="secondary" className="bg-muted/50 text-[10px] uppercase tracking-wider">
+                                                    {question.type.replace('_', ' ')}
+                                                </Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {question.points} {question.points === 1 ? 'point' : 'points'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="ml-12">
+                                    {isText ? (
+                                        <div className="grid gap-3">
+                                            {question.type === 'SHORT_ANSWER' ? (
+                                                <Input
+                                                    placeholder="Type your answer here..."
+                                                    value={textVal}
+                                                    disabled={isSubmitted}
+                                                    onChange={(e) => setQuizValue(question.id, e.target.value)}
+                                                    className="rounded-xl border-border focus:ring-primary/20"
+                                                />
+                                            ) : (
+                                                <Textarea
+                                                    placeholder="Type your essay answer here..."
+                                                    value={textVal}
+                                                    disabled={isSubmitted}
+                                                    onChange={(e) => setQuizValue(question.id, e.target.value)}
+                                                    className="min-h-40 rounded-xl border-border focus:ring-primary/20"
+                                                />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-3">
+                                            {(question.options || []).map((option) => {
+                                                const checked = selected.includes(option.id);
+
+                                                return (
+                                                    <label
+                                                        key={option.id}
+                                                        className={cn(
+                                                            'flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all hover:bg-muted/50',
+                                                            checked ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border',
+                                                            isSubmitted && 'cursor-default opacity-80'
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "flex h-5 w-5 shrink-0 items-center justify-center border transition-all",
+                                                            isCheckbox ? "rounded-md" : "rounded-full",
+                                                            checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                                                        )}>
+                                                            {checked && <div className={cn("h-2 w-2 bg-current", isCheckbox ? "" : "rounded-full")} />}
+                                                        </div>
+                                                        <input
+                                                            type={isCheckbox ? 'checkbox' : 'radio'}
+                                                            name={question.id}
+                                                            checked={checked}
+                                                            disabled={isSubmitted}
+                                                            className="sr-only"
+                                                            onChange={(e) => {
+                                                                if (isSubmitted) return;
+                                                                if (isCheckbox) {
+                                                                    const next = e.target.checked
+                                                                        ? [...selected, option.id]
+                                                                        : selected.filter((id) => id !== option.id);
+                                                                    setQuizValue(question.id, next);
+                                                                } else if (isSingle) {
+                                                                    setQuizValue(question.id, [option.id]);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span className="text-sm font-medium">{option.text}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {question.answerText && !isSubmitted ? (
+                                    <div className="mt-4 ml-12 rounded-lg bg-blue-50/50 p-3 text-xs text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                                        <span className="font-bold">Hint:</span> {question.answerText}
+                                    </div>
+                                ) : null}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="flex justify-end pt-4">
+                    <Button
+                        size="lg"
+                        className="px-8 font-semibold shadow-lg shadow-primary/20"
+                        onClick={() => handleSubmitQuiz(lesson)}
+                        disabled={submitting || isSubmitted}
+                    >
+                        {submitting ? 'Submitting...' : isSubmitted ? 'Quiz Submitted' : 'Submit Quiz'}
+                        {!submitting && !isSubmitted && <CheckCircle2 className="ml-2 h-4 w-4" />}
+                    </Button>
+                </div>
             </div>
         );
     };
 
     const renderAssignment = (lesson: Lesson) => {
         const questions = lesson.assignmentQuestions || [];
+        const isSubmitted = submittedIds.has(lesson.id) || completedIds.has(lesson.id);
+        const submission = submissions.find(s => s.assignmentId === lesson.id || s.assignmentTitle.includes(lesson.id));
+
         if (!questions.length) {
-            return <p className="text-muted-foreground">No assignment questions available.</p>;
+            return (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="mb-4 rounded-full bg-muted p-4">
+                        <ClipboardList className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">No Assignment Content</h3>
+                    <p className="text-sm text-muted-foreground">This assignment doesn't have any specific tasks yet.</p>
+                </div>
+            );
         }
 
         return (
-            <div className="space-y-4">
-                {questions.map((question) => (
-                    <div key={question.id} className="rounded-2xl border bg-background p-4">
-                        <div className="mb-3 flex items-start justify-between gap-3">
-                            <div>
-                                <h4 className="font-semibold">{question.title}</h4>
-                                <p className="text-xs text-muted-foreground">
-                                    {question.type.replace('_', ' ')} · {question.points} point(s)
-                                </p>
-                            </div>
-                            <Badge variant="secondary">Assignment</Badge>
-                        </div>
-
-                        <textarea
-                            className="min-h-32 w-full rounded-xl border bg-background p-3 text-sm"
-                            placeholder="Write your answer here..."
-                            value={assignmentText[question.id] || ''}
-                            onChange={(e) =>
-                                setAssignmentText((prev) => ({ ...prev, [question.id]: e.target.value }))
-                            }
-                        />
-
-                        {question.answerText ? (
-                            <p className="mt-3 text-xs text-muted-foreground">
-                                Grading note: {question.answerText}
-                            </p>
-                        ) : null}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between border-b pb-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-primary">Assignment Task</h3>
+                        <p className="text-sm text-muted-foreground">Complete the following tasks and submit your response.</p>
                     </div>
-                ))}
+                    <div className="flex items-center gap-2">
+                        {isSubmitted && (
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Submitted
+                            </Badge>
+                        )}
+                        <Badge variant="outline" className="px-3 py-1">
+                            {questions.length} Tasks
+                        </Badge>
+                    </div>
+                </div>
 
-                <Button onClick={() => void saveProgress(lesson.id, { isCompleted: true, watchTime })}>
-                    Submit Assignment
-                </Button>
+                {isSubmitted && submission && submission.status === 'GRADED' && (
+                    <Card className="bg-primary/5 border-primary/20 overflow-hidden mb-6">
+                        <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
+                            <span className="text-sm font-bold text-primary flex items-center">
+                                <Star className="mr-2 h-4 w-4 fill-primary" />
+                                Instructor Feedback
+                            </span>
+                            <Badge variant="secondary" className="bg-primary/20 text-primary border-none">
+                                {submission.points} Points Earned
+                            </Badge>
+                        </div>
+                        <CardContent className="p-4">
+                            <p className="text-sm italic text-muted-foreground">
+                                "{submission.feedback || "Your assignment has been graded. Well done!"}"
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <div className="space-y-6">
+                    {questions.map((question, qIdx) => {
+                        const selected = getAssignmentSelected(question.id);
+                        const textVal = getAssignmentText(question.id);
+                        const isCheckbox = question.type === 'CHECKBOX';
+                        const isSingle = question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE';
+                        const isText = question.type === 'SHORT_ANSWER' || question.type === 'ESSAY';
+
+                        return (
+                            <div key={question.id} className="rounded-2xl border bg-card p-6 shadow-sm">
+                                <div className="mb-4 flex items-start gap-4">
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                                        {qIdx + 1}
+                                    </span>
+                                    <div className="space-y-1">
+                                        <h4 className="text-base font-semibold">{question.title}</h4>
+                                        <div className="flex items-center gap-3">
+                                            <Badge variant="secondary" className="bg-muted/50 text-[10px] uppercase tracking-wider">
+                                                {question.type.replace('_', ' ')}
+                                            </Badge>
+                                            <span className="text-xs text-muted-foreground">
+                                                {question.points} {question.points === 1 ? 'point' : 'points'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="ml-12">
+                                    {isText ? (
+                                        <Textarea
+                                            className="min-h-40 rounded-xl border-border focus:ring-primary/20"
+                                            placeholder="Write your detailed answer here..."
+                                            value={textVal}
+                                            disabled={isSubmitted}
+                                            onChange={(e) =>
+                                                setAssignmentValue(question.id, e.target.value)
+                                            }
+                                        />
+                                    ) : (
+                                        <div className="grid gap-3">
+                                            {(question.options || []).map((option) => {
+                                                const checked = selected.includes(option.id);
+
+                                                return (
+                                                    <label
+                                                        key={option.id}
+                                                        className={cn(
+                                                            'flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all hover:bg-muted/50',
+                                                            checked ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border',
+                                                            isSubmitted && 'cursor-default opacity-80'
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "flex h-5 w-5 shrink-0 items-center justify-center border transition-all",
+                                                            isCheckbox ? "rounded-md" : "rounded-full",
+                                                            checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                                                        )}>
+                                                            {checked && <div className={cn("h-2 w-2 bg-current", isCheckbox ? "" : "rounded-full")} />}
+                                                        </div>
+                                                        <input
+                                                            type={isCheckbox ? 'checkbox' : 'radio'}
+                                                            name={question.id}
+                                                            checked={checked}
+                                                            disabled={isSubmitted}
+                                                            className="sr-only"
+                                                            onChange={(e) => {
+                                                                if (isSubmitted) return;
+                                                                if (isCheckbox) {
+                                                                    const next = e.target.checked
+                                                                        ? [...selected, option.id]
+                                                                        : selected.filter((id) => id !== option.id);
+                                                                    setAssignmentValue(question.id, next);
+                                                                } else if (isSingle) {
+                                                                    setAssignmentValue(question.id, [option.id]);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span className="text-sm font-medium">{option.text}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {question.answerText ? (
+                                    <div className="mt-4 ml-12 rounded-lg bg-blue-50/50 p-4 text-xs text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                                        <span className="font-bold">Grading Criteria:</span> {question.answerText}
+                                    </div>
+                                ) : null}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="flex justify-end pt-4">
+                    <Button
+                        size="lg"
+                        className="px-8 font-semibold shadow-lg shadow-primary/20"
+                        onClick={() => handleSubmitAssignment(lesson)}
+                        disabled={submitting || isSubmitted}
+                    >
+                        {submitting ? 'Submitting...' : isSubmitted ? 'Assignment Submitted' : 'Submit Assignment'}
+                        {!submitting && !isSubmitted && <CheckCircle2 className="ml-2 h-4 w-4" />}
+                    </Button>
+                </div>
             </div>
         );
     };
@@ -609,55 +936,92 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     const renderLiveSession = (lesson: Lesson) => {
         const session = lesson.liveSession;
         if (!session) {
-            return <p className="text-muted-foreground">No live session details available.</p>;
+            return (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="mb-4 rounded-full bg-muted p-4">
+                        <Video className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">No Session Details</h3>
+                    <p className="text-sm text-muted-foreground">The details for this live session haven't been set yet.</p>
+                </div>
+            );
         }
 
+        const sessionDate = new Date(session.date);
+        const isPast = sessionDate < new Date();
+
         return (
-            <div className="space-y-4 rounded-2xl border bg-background p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-6">
+                <div className="flex items-center justify-between border-b pb-4">
                     <div>
-                        <h3 className="text-xl font-bold">{session.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {session.description || 'Live session for this lesson.'}
-                        </p>
+                        <h3 className="text-lg font-semibold text-primary">Live Session</h3>
+                        <p className="text-sm text-muted-foreground">Join the live session at the scheduled time.</p>
                     </div>
-                    <Badge variant="secondary">{getCalendarLabel(session.calendarProvider)}</Badge>
+                    <Badge
+                        variant={isPast ? 'secondary' : 'outline'}
+                        className={cn("px-3 py-1", !isPast && "text-primary animate-pulse")}
+                    >
+                        {isPast ? 'Past Session' : 'Upcoming'}
+                    </Badge>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground">Date</p>
-                        <p className="font-medium">{new Date(session.date).toLocaleDateString()}</p>
-                    </div>
-                    <div className="rounded-xl border bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground">Time</p>
-                        <p className="font-medium">{session.time}</p>
-                    </div>
-                    <div className="rounded-xl border bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground">Duration</p>
-                        <p className="font-medium">{session.duration} minutes</p>
-                    </div>
-                    <div className="rounded-xl border bg-muted/20 p-3">
-                        <p className="text-xs text-muted-foreground">Meeting Link</p>
-                        {session.meetingLink ? (
-                            <a
-                                href={session.meetingLink}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 font-medium text-primary underline"
-                            >
-                                Join session
-                                <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                        ) : (
-                            <p className="font-medium">Not available</p>
-                        )}
+                <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="text-xl font-bold">{session.title}</h4>
+                                <p className="mt-2 text-sm text-muted-foreground line-clamp-3">{session.description || 'Live session for this lesson.'}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                                        <CalendarDays className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <span className="font-medium">{sessionDate.toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                                        <Clock className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <span className="font-medium">{session.time} ({session.duration} mins)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center rounded-xl bg-muted/30 p-6 text-center">
+                            <Video className="mb-4 h-12 w-12 text-muted-foreground/50" />
+                            {session.meetingLink ? (
+                                <div className="w-full space-y-3">
+                                    <p className="text-xs text-muted-foreground">Your meeting is ready</p>
+                                    <Button className="w-full" asChild>
+                                        <a href={session.meetingLink.startsWith('http') ? session.meetingLink : `https://${session.meetingLink}`} target="_blank" rel="noopener noreferrer">
+                                            Join Meeting
+                                            <ExternalLink className="ml-2 h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                    <p className="text-[10px] text-muted-foreground italic">Powered by {session.calendarProvider !== 'NONE' ? getCalendarLabel(session.calendarProvider) : 'Internal Session'}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    <p className="font-medium">Link Not Available</p>
+                                    <p className="text-xs text-muted-foreground">The meeting link will appear here before the session starts.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <Button onClick={() => void saveProgress(lesson.id, { isCompleted: true, watchTime })}>
-                    Mark Live Session as Attended
-                </Button>
+                <div className="flex justify-end pt-4">
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="px-8"
+                        onClick={() => void saveProgress(lesson.id, { isCompleted: true, watchTime })}
+                    >
+                        Mark Session as Attended
+                    </Button>
+                </div>
             </div>
         );
     };
@@ -667,8 +1031,8 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
     return (
         <div
             className={cn(
-                'min-h-[calc(100vh-4rem)] w-full bg-background',
-                isFullscreen && 'fixed inset-0 z-50 min-h-screen overflow-auto bg-background'
+                'min-h-screen w-full bg-background',
+                isFullscreen && 'fixed inset-0 z-50 overflow-auto bg-background'
             )}
         >
             <div
@@ -700,6 +1064,14 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                     </div>
 
                     <div className="hidden items-center gap-3 md:flex">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className={cn(isFullscreen && 'text-white')}
+                        >
+                            <Layers3 className="h-4 w-4" />
+                        </Button>
                         <Badge variant="secondary" className="gap-1">
                             <Users className="h-3.5 w-3.5" />
                             {course._count?.enrollments || course.enrollmentCount || 0}
@@ -736,8 +1108,8 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                 </div>
             </div>
 
-            <div className="mx-auto w-full px-4 py-6">
-                <main className="space-y-6">
+            <div className="mx-auto flex w-full max-w-[1600px] gap-6 px-4 py-6">
+                <main className={cn("flex-1 space-y-6 transition-all duration-300", !sidebarOpen && "max-w-4xl mx-auto w-full")}>
                     <Card className="overflow-hidden border-border/60 shadow-sm">
                         <CardContent className="p-0">
                             <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/15 via-background to-primary/5">
@@ -875,52 +1247,71 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
-                                    {course.duration ? `${course.duration} minutes` : 'Self paced'}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Layers3 className="h-4 w-4" />
-                                    {modules.length} modules
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <BarChart3 className="h-4 w-4" />
-                                    {courseCompletion}% complete
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <BookOpen className="h-4 w-4" />
-                                    {formatCurrency(course.price, course.currency || 'USD')}
-                                </span>
+                            <div className="flex items-center gap-4">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                                    className="hidden lg:flex"
+                                >
+                                    <Layers3 className="mr-2 h-4 w-4" />
+                                    {sidebarOpen ? 'Hide Content' : 'Show Content'}
+                                </Button>
+                                <div className="hidden lg:flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                        <Clock className="h-4 w-4" />
+                                        {course.duration ? `${course.duration} minutes` : 'Self paced'}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Layers3 className="h-4 w-4" />
+                                        {modules.length} modules
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 {activeLesson?.type === 'TEXT' ? (
-                                    <div className="whitespace-pre-wrap rounded-2xl border bg-muted/20 p-5 text-sm leading-7">
+                                    <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-2xl border bg-card p-8 leading-relaxed shadow-sm">
+                                        <div className="mb-6 flex items-center justify-between border-b pb-4">
+                                            <h3 className="text-lg font-semibold text-primary">Lesson Content</h3>
+                                            <Badge variant="outline">Text Lesson</Badge>
+                                        </div>
                                         {activeLesson.content || 'No text content available for this lesson.'}
                                     </div>
                                 ) : activeLesson?.type === 'QUIZ' ? (
-                                    <div className="rounded-2xl border bg-muted/20 p-5">{renderQuiz(activeLesson)}</div>
+                                    <div className="rounded-2xl border bg-muted/10 p-2 md:p-6">{renderQuiz(activeLesson)}</div>
                                 ) : activeLesson?.type === 'ASSIGNMENT' ? (
-                                    <div className="rounded-2xl border bg-muted/20 p-5">{renderAssignment(activeLesson)}</div>
+                                    <div className="rounded-2xl border bg-muted/10 p-2 md:p-6">{renderAssignment(activeLesson)}</div>
                                 ) : activeLesson?.type === 'LIVE_SESSION' ? (
-                                    <div className="rounded-2xl border bg-muted/20 p-5">{renderLiveSession(activeLesson)}</div>
+                                    <div className="rounded-2xl border bg-muted/10 p-2 md:p-6">{renderLiveSession(activeLesson)}</div>
                                 ) : (
-                                    <div className="rounded-2xl border bg-muted/20 p-5">
-                                        <p className="text-muted-foreground">
-                                            {activeLesson?.videoUrl
-                                                ? 'Use the video player above to watch this lesson.'
-                                                : 'Select a lesson to begin.'}
-                                        </p>
+                                    <div className="rounded-2xl border bg-card p-8 shadow-sm">
+                                        <div className="flex flex-col items-center justify-center text-center">
+                                            <div className="mb-4 rounded-full bg-primary/5 p-4">
+                                                {activeLesson?.videoUrl ? <Video className="h-8 w-8 text-primary" /> : <BookOpen className="h-8 w-8 text-primary" />}
+                                            </div>
+                                            <p className="max-w-md text-muted-foreground">
+                                                {activeLesson?.videoUrl
+                                                    ? 'Watch the video lesson above. Once you are finished, mark it as complete below.'
+                                                    : 'Select a lesson from the sidebar to begin your learning journey.'}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
-                                <div className="flex items-center gap-3">
-                                    <Button onClick={markComplete} disabled={saving || !activeLesson}>
-                                        {saving ? 'Saving...' : 'Mark as Complete'}
-                                        <CheckCircle2 className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!['QUIZ', 'ASSIGNMENT', 'LIVE_SESSION'].includes(activeLesson?.type || '') && (
+                                    <div className="flex items-center justify-end gap-3 border-t pt-6">
+                                        <Button
+                                            size="lg"
+                                            className="px-8 font-semibold shadow-lg shadow-primary/20"
+                                            onClick={markComplete}
+                                            disabled={saving || !activeLesson}
+                                        >
+                                            {saving ? 'Saving...' : 'Mark as Complete'}
+                                            <CheckCircle2 className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -954,31 +1345,39 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                                                         type="button"
                                                         onClick={() => goToLesson(lesson.id)}
                                                         className={cn(
-                                                            'flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-colors',
-                                                            active ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+                                                            'flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200',
+                                                            active 
+                                                                ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20' 
+                                                                : 'border-transparent hover:bg-muted/40 hover:border-border'
                                                         )}
                                                     >
-                                                        <div className="flex min-w-0 items-center gap-2">
-                                                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                                                        <div className="flex min-w-0 items-center gap-3">
+                                                            <span className={cn(
+                                                                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors",
+                                                                completed ? "bg-green-100 text-green-600" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                                            )}>
                                                                 {completed ? (
-                                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                                ) : lesson.isFree ? (
-                                                                    <Circle className="h-4 w-4" />
+                                                                    <CheckCircle2 className="h-5 w-5" />
                                                                 ) : (
-                                                                    <Lock className="h-4 w-4" />
+                                                                    getLessonIcon(lesson.type)
                                                                 )}
                                                             </span>
                                                             <div className="min-w-0">
-                                                                <div className="truncate font-medium">{lesson.title}</div>
-                                                                <div className="truncate text-xs text-muted-foreground">
+                                                                <div className={cn(
+                                                                    "truncate text-sm font-semibold",
+                                                                    active ? "text-primary" : "text-foreground"
+                                                                )}>
+                                                                    {lesson.title}
+                                                                </div>
+                                                                <div className="flex items-center gap-2 truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                                                                     {lesson.type.replace('_', ' ')}
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         <div className="flex items-center gap-2">
-                                                            {lesson.isFree ? <Badge>Free</Badge> : null}
-                                                            {completed ? <Badge variant="secondary">Done</Badge> : null}
+                                                            {lesson.isFree && !completed ? <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none h-5 px-1.5 text-[10px]">Free</Badge> : null}
+                                                            {!completed && !lesson.isFree && <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />}
                                                         </div>
                                                     </button>
                                                 );
@@ -990,6 +1389,81 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress 
                         </CardContent>
                     </Card>
                 </main>
+
+                {sidebarOpen && (
+                    <aside className="hidden w-80 shrink-0 space-y-6 lg:block">
+                        <Card className="sticky top-24 border-border/60 shadow-md max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+                            <CardContent className="p-0 overflow-hidden flex flex-col h-full">
+                                <div className="p-6 border-b">
+                                    <h3 className="font-bold flex items-center gap-2">
+                                        <BookOpen className="h-4 w-4 text-primary" />
+                                        Course Content
+                                    </h3>
+                                    <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary transition-all duration-500" 
+                                            style={{ width: `${courseCompletion}%` }}
+                                        />
+                                    </div>
+                                    <p className="mt-2 text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                        {courseCompletion}% Completed
+                                    </p>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {modules.map((mod, index) => (
+                                        <div key={mod.id} className="space-y-2">
+                                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-2">
+                                                Module {index + 1}: {mod.title}
+                                            </h4>
+                                            <div className="space-y-1">
+                                                {(mod.lessons || []).map((lesson) => {
+                                                    const completed = completedIds.has(lesson.id);
+                                                    const active = lesson.id === activeLesson?.id;
+
+                                                    return (
+                                                        <button
+                                                            key={lesson.id}
+                                                            type="button"
+                                                            onClick={() => goToLesson(lesson.id)}
+                                                            className={cn(
+                                                                'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 group',
+                                                                active 
+                                                                    ? 'bg-primary/10 text-primary' 
+                                                                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                                                            )}
+                                                        >
+                                                            <div className="flex min-w-0 items-center gap-3">
+                                                                <span className={cn(
+                                                                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors",
+                                                                    completed ? "text-green-500" : active ? "text-primary" : "text-muted-foreground/50 group-hover:text-muted-foreground"
+                                                                )}>
+                                                                    {completed ? (
+                                                                        <CheckCircle2 className="h-4 w-4" />
+                                                                    ) : (
+                                                                        getLessonIcon(lesson.type)
+                                                                    )}
+                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <div className={cn(
+                                                                        "truncate text-xs font-semibold",
+                                                                        active ? "text-primary" : "text-foreground/80"
+                                                                    )}>
+                                                                        {lesson.title}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            {lesson.isFree && !completed && <Badge className="bg-blue-100 text-blue-700 h-4 px-1 text-[8px]">Free</Badge>}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </aside>
+                )}
             </div>
         </div>
     );

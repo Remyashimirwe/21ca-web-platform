@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import {
     Users,
@@ -18,7 +18,8 @@ import {
     BarChart3,
     ShieldCheck,
     MessageSquare,
-    ChevronRight
+    ChevronRight,
+    Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,33 @@ import Link from 'next/link';
 
 const AdminDashboard = () => {
     const { user } = useUser();
+    const [stats, setStats] = useState<any>(null);
+    const [activity, setActivity] = useState<any[]>([]);
+    const [topCourses, setTopCourses] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAdminData = async () => {
+            try {
+                setLoading(true);
+                const [statsRes, activityRes, coursesRes] = await Promise.all([
+                    fetch('/api/admin/stats'),
+                    fetch('/api/admin/activity'),
+                    fetch('/api/admin/top-courses')
+                ]);
+
+                if (statsRes.ok) setStats(await statsRes.json());
+                if (activityRes.ok) setActivity(await activityRes.json());
+                if (coursesRes.ok) setTopCourses(await coursesRes.json());
+            } catch (error) {
+                console.error('Failed to fetch admin data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAdminData();
+    }, []);
 
     // Get current time for greeting
     const currentHour = new Date().getHours();
@@ -35,79 +63,30 @@ const AdminDashboard = () => {
         return 'Good Evening';
     };
 
-    // Mock admin data - you can replace with real data later
-    const adminStats = {
-        totalUsers: 1247,
-        activeUsers: 892,
-        totalCourses: 24,
-        totalRevenue: 45670,
-        newUsersToday: 23,
-        courseCompletions: 156,
-        supportTickets: 8,
-        conversionRate: 12.5
+    const insights = [
+        { label: 'Growth', value: stats ? `+${stats.growthRate}%` : '...', icon: ArrowUp, tone: 'text-emerald-500' },
+        { label: 'Engagement', value: stats ? `${stats.engagement}%` : '...', icon: Sparkles, tone: 'text-violet-500' },
+        { label: 'Retention', value: stats ? `${stats.retention}%` : '...', icon: ShieldCheck, tone: 'text-sky-500' },
+        { label: 'Messages', value: stats ? stats.messages : '...', icon: MessageSquare, tone: 'text-amber-500' }
+    ];
+
+    const getActivityIcon = (type: string) => {
+        switch (type) {
+            case 'user_registration': return Users;
+            case 'course_completion': return Award;
+            case 'course_enrollment': return BookOpen;
+            default: return AlertCircle;
+        }
     };
 
-    const insights = [
-        { label: 'Growth', value: '+18.4%', icon: ArrowUp, tone: 'text-emerald-500' },
-        { label: 'Engagement', value: '92%', icon: Sparkles, tone: 'text-violet-500' },
-        { label: 'Retention', value: '81%', icon: ShieldCheck, tone: 'text-sky-500' },
-        { label: 'Messages', value: '14', icon: MessageSquare, tone: 'text-amber-500' }
-    ];
-
-    const recentActivity = [
-        {
-            type: 'user_registration',
-            message: '5 new users registered',
-            time: '10 minutes ago',
-            icon: Users,
-            color: 'text-green-500'
-        },
-        {
-            type: 'course_completion',
-            message: 'STEM Foundations course completed by Marie Claire',
-            time: '1 hour ago',
-            icon: Award,
-            color: 'text-yellow-500'
-        },
-        {
-            type: 'support_ticket',
-            message: 'New support ticket submitted',
-            time: '2 hours ago',
-            icon: AlertCircle,
-            color: 'text-orange-500'
-        },
-        {
-            type: 'course_enrollment',
-            message: '12 new course enrollments today',
-            time: '4 hours ago',
-            icon: BookOpen,
-            color: 'text-blue-500'
+    const getActivityColor = (type: string) => {
+        switch (type) {
+            case 'user_registration': return 'text-green-500';
+            case 'course_completion': return 'text-yellow-500';
+            case 'course_enrollment': return 'text-blue-500';
+            default: return 'text-orange-500';
         }
-    ];
-
-    const topCourses = [
-        {
-            title: "STEM Foundations for Young Innovators",
-            enrollments: 234,
-            completion: 78,
-            rating: 4.9,
-            trend: 'up'
-        },
-        {
-            title: "Digital Financial Literacy Essentials",
-            enrollments: 189,
-            completion: 85,
-            rating: 4.8,
-            trend: 'up'
-        },
-        {
-            title: "Green Entrepreneurship Bootcamp",
-            enrollments: 167,
-            completion: 65,
-            rating: 4.9,
-            trend: 'down'
-        }
-    ];
+    };
 
     const quickActions = [
         { title: 'View All Users', icon: Users, action: 'users', href: '/admin/users' },
@@ -116,6 +95,17 @@ const AdminDashboard = () => {
         { title: 'Revenue Reports', icon: DollarSign, action: 'reports', href: '/admin/dashboard' },
         { title: 'Support Center', icon: AlertCircle, action: 'support', href: '/support' }
     ];
+
+    if (loading && !stats) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center pt-20">
+                <div className="text-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading admin dashboard...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background pt-20">
@@ -158,7 +148,7 @@ const AdminDashboard = () => {
                             <div>
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
                                 <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    {adminStats.totalUsers.toLocaleString()}
+                                    {stats?.totalUsers?.toLocaleString() || '0'}
                                 </div>
                             </div>
                             <div className="rounded-xl bg-blue-500/10 p-3 text-blue-500">
@@ -168,7 +158,7 @@ const AdminDashboard = () => {
                         <CardContent>
                             <p className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                                 <ArrowUp className="h-3 w-3" />
-                                +12% from last month
+                                {stats?.growthRate}% from last month
                             </p>
                         </CardContent>
                     </Card>
@@ -178,7 +168,7 @@ const AdminDashboard = () => {
                             <div>
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Active Users</CardTitle>
                                 <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    {adminStats.activeUsers.toLocaleString()}
+                                    {stats?.activeUsers?.toLocaleString() || '0'}
                                 </div>
                             </div>
                             <div className="rounded-xl bg-green-500/10 p-3 text-green-500">
@@ -188,7 +178,7 @@ const AdminDashboard = () => {
                         <CardContent>
                             <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                                 <ArrowUp className="h-3 w-3" />
-                                +8% this week
+                                +{stats?.newUsersToday} today
                             </p>
                         </CardContent>
                     </Card>
@@ -198,7 +188,7 @@ const AdminDashboard = () => {
                             <div>
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
                                 <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    {adminStats.totalCourses}
+                                    {stats?.totalCourses || '0'}
                                 </div>
                             </div>
                             <div className="rounded-xl bg-purple-500/10 p-3 text-purple-500">
@@ -206,7 +196,7 @@ const AdminDashboard = () => {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-xs text-purple-600 dark:text-purple-400">4 categories available</p>
+                            <p className="text-xs text-purple-600 dark:text-purple-400">All categories</p>
                         </CardContent>
                     </Card>
 
@@ -215,7 +205,7 @@ const AdminDashboard = () => {
                             <div>
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
                                 <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    ${adminStats.totalRevenue.toLocaleString()}
+                                    ${stats?.totalRevenue?.toLocaleString() || '0'}
                                 </div>
                             </div>
                             <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500">
@@ -225,7 +215,7 @@ const AdminDashboard = () => {
                         <CardContent>
                             <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                                 <ArrowUp className="h-3 w-3" />
-                                +23% from last month
+                                {stats?.conversionRate}% conversion rate
                             </p>
                         </CardContent>
                     </Card>
@@ -252,27 +242,32 @@ const AdminDashboard = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {recentActivity.map((activity, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
-                                    >
-                                        <div className={`rounded-xl bg-background p-3 ${activity.color}`}>
-                                            <activity.icon className="h-5 w-5" />
+                                {activity.length === 0 ? (
+                                    <p className="text-center text-muted-foreground py-10">No recent activity</p>
+                                ) : activity.map((act, index) => {
+                                    const Icon = getActivityIcon(act.type);
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
+                                        >
+                                            <div className={`rounded-xl bg-background p-3 ${getActivityColor(act.type)}`}>
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {act.message}
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {act.time}
+                                                </p>
+                                            </div>
+                                            <Button size="icon" variant="ghost" className="shrink-0 rounded-full">
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium text-foreground">
-                                                {activity.message}
-                                            </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {activity.time}
-                                            </p>
-                                        </div>
-                                        <Button size="icon" variant="ghost" className="shrink-0 rounded-full">
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </CardContent>
                     </Card>
@@ -290,7 +285,9 @@ const AdminDashboard = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {topCourses.map((course, index) => (
+                                {topCourses.length === 0 ? (
+                                    <p className="text-center text-muted-foreground py-10">No data available</p>
+                                ) : topCourses.map((course, index) => (
                                     <div
                                         key={index}
                                         className="rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
@@ -341,8 +338,8 @@ const AdminDashboard = () => {
                             <Clock className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{adminStats.courseCompletions}</div>
-                            <p className="text-xs text-muted-foreground">This month</p>
+                            <div className="text-2xl font-bold text-foreground">{stats?.courseCompletions || '0'}</div>
+                            <p className="text-xs text-muted-foreground">Total to date</p>
                         </CardContent>
                     </Card>
 
@@ -354,8 +351,8 @@ const AdminDashboard = () => {
                             <AlertCircle className="h-4 w-4 text-orange-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{adminStats.supportTickets}</div>
-                            <p className="text-xs text-orange-600 dark:text-orange-400">2 urgent</p>
+                            <div className="text-2xl font-bold text-foreground">{stats?.supportTickets || '0'}</div>
+                            <p className="text-xs text-orange-600 dark:text-orange-400">All resolved</p>
                         </CardContent>
                     </Card>
 
@@ -367,10 +364,10 @@ const AdminDashboard = () => {
                             <TrendingUp className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{adminStats.conversionRate}%</div>
+                            <div className="text-2xl font-bold text-foreground">{stats?.conversionRate || '0'}%</div>
                             <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                                 <ArrowUp className="h-3 w-3" />
-                                +2.1% this week
+                                Healthy benchmark
                             </p>
                         </CardContent>
                     </Card>

@@ -7,12 +7,22 @@ export async function GET(req: NextRequest) {
             where: {
                 isActive: true
             },
+            include: {
+                _count: {
+                    select: { courses: true }
+                }
+            },
             orderBy: {
                 sortOrder: 'asc'
             }
         });
 
-        return NextResponse.json(categories);
+        const formattedCategories = categories.map(cat => ({
+            ...cat,
+            courseCount: cat._count.courses
+        }));
+
+        return NextResponse.json(formattedCategories);
     } catch (error) {
         console.error('Error fetching categories:', error);
         return NextResponse.json(

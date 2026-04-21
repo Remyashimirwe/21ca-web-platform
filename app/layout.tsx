@@ -5,6 +5,8 @@ import React from "react";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "@/components/ui/sonner";
+import { PushNotificationManager } from "@/components/notifications/PushNotificationManager";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -50,10 +52,11 @@ export default function RootLayout({
                 enableSystem
                 disableTransitionOnChange
             >
-                <ConditionalNavbar />
                 <main>
                     {children}
                 </main>
+                <Toaster />
+                <PushNotificationManager />
             </ThemeProvider>
             </body>
             </html>

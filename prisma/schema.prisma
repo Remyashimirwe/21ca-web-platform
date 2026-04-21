@@ -35,13 +35,34 @@ model User {
   reviews           Review[]
   payments          Payment[]
   notifications     Notification[]
-  messages          Message[]      @relation("UserMessages")
-  sentMessages      Message[]      @relation("SentMessages")
+  messages          Message[]       @relation("UserMessages")
+  sentMessages      Message[]       @relation("SentMessages")
   assignments       Assignment[]
   submissions       Submission[]
   certificates      Certificate[]
+  calendarEvents    CalendarEvent[]
 
   @@map("users")
+}
+
+// CalendarEvent model
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  startTime   DateTime
+  endTime     DateTime
+  type        String   @default("other") // live_session, assignment, deadline, meeting, other
+  location    String?
+  courseId    String?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("calendar_events")
 }
 
 enum Role {
@@ -122,6 +143,7 @@ model Category {
   description String?
   icon        String?
   color       String?
+  image       String?
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())

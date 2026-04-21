@@ -26,6 +26,26 @@ function serializeCourse(course: any) {
                 ...lesson,
                 createdAt: lesson.createdAt ? lesson.createdAt.toISOString() : null,
                 updatedAt: lesson.updatedAt ? lesson.updatedAt.toISOString() : null,
+                quizQuestions: (lesson.quizQuestions || []).map((q: any) => ({
+                    ...q,
+                    createdAt: q.createdAt ? q.createdAt.toISOString() : null,
+                    updatedAt: q.updatedAt ? q.updatedAt.toISOString() : null,
+                    options: (q.options || []).map((o: any) => ({
+                        ...o,
+                        createdAt: o.createdAt ? o.createdAt.toISOString() : null,
+                        updatedAt: o.updatedAt ? o.updatedAt.toISOString() : null,
+                    })),
+                })),
+                assignmentQuestions: (lesson.assignmentQuestions || []).map((q: any) => ({
+                    ...q,
+                    createdAt: q.createdAt ? q.createdAt.toISOString() : null,
+                    updatedAt: q.updatedAt ? q.updatedAt.toISOString() : null,
+                    options: (q.options || []).map((o: any) => ({
+                        ...o,
+                        createdAt: o.createdAt ? o.createdAt.toISOString() : null,
+                        updatedAt: o.updatedAt ? o.updatedAt.toISOString() : null,
+                    })),
+                })),
             })),
         })),
     };
@@ -69,6 +89,25 @@ export default async function MyCourseLearningPage({ params }: Props) {
                     modules: {
                         include: {
                             lessons: {
+                                include: {
+                                    quizQuestions: {
+                                        include: {
+                                            options: {
+                                                orderBy: { sortOrder: 'asc' },
+                                            },
+                                        },
+                                        orderBy: { sortOrder: 'asc' },
+                                    },
+                                    assignmentQuestions: {
+                                        include: {
+                                            options: {
+                                                orderBy: { sortOrder: 'asc' },
+                                            },
+                                        },
+                                        orderBy: { sortOrder: 'asc' },
+                                    },
+                                    liveSession: true,
+                                },
                                 orderBy: { sortOrder: 'asc' },
                             },
                         },
@@ -90,8 +129,24 @@ export default async function MyCourseLearningPage({ params }: Props) {
         notFound();
     }
 
+    const submissions = await prisma.submission.findMany({
+        where: {
+            studentId: dbUser.id,
+            assignment: {
+                courseId: params.courseId
+            }
+        },
+        include: {
+            assignment: {
+                select: {
+                    title: true
+                }
+            }
+        }
+    });
+
     return (
-        <div className="w-full min-h-[calc(100vh-4rem)]">
+        <div className="w-full min-h-screen">
             <CourseLearningPage
                 course={serializeCourse(enrollment.course)}
                 enrollment={{
@@ -104,6 +159,15 @@ export default async function MyCourseLearningPage({ params }: Props) {
                     lessonId: item.lessonId,
                     isCompleted: item.isCompleted,
                     watchTime: item.watchTime,
+                }))}
+                submissions={submissions.map(s => ({
+                    id: s.id,
+                    assignmentId: s.assignmentId,
+                    assignmentTitle: s.assignment.title,
+                    status: s.status,
+                    points: s.points,
+                    feedback: s.feedback,
+                    submittedAt: s.submittedAt.toISOString()
                 }))}
             />
         </div>

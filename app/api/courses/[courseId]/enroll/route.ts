@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 
 async function getOrCreateDbUser() {
     const { userId } = await auth();
@@ -95,6 +96,21 @@ export async function POST(
 
             return createdEnrollment;
         });
+
+        // 🔔 Notify the instructor about the new enrollment
+        const instructor = await prisma.user.findUnique({
+            where: { id: course.instructorId }
+        });
+
+        if (instructor) {
+            await createNotification({
+                userId: instructor.id,
+                title: '🎓 New Enrollment',
+                message: `${dbUser.firstName} ${dbUser.lastName} has enrolled in your course: ${course.title}`,
+                type: 'SUCCESS',
+                actionUrl: `/instructor/courses/${course.id}`
+            });
+        }
 
         return NextResponse.json({
             success: true,

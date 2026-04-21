@@ -46,6 +46,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { showBrowserNotification } from '@/components/notifications/PushNotificationManager';
 
 interface NavbarProps {
     onSidebarToggle?: () => void;
@@ -75,6 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
     const [mounted, setMounted] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notificationsLoading, setNotificationsLoading] = useState(true);
+    const [lastNotificationId, setLastNotificationId] = useState<string | null>(null);
     
     const searchRef = useRef<HTMLInputElement>(null);
     
@@ -94,7 +96,21 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
             setNotificationsLoading(true);
             const response = await fetch('/api/notifications');
             const data = await response.json();
-            setNotifications(Array.isArray(data) ? data : []);
+            const newNotifications = Array.isArray(data) ? data : [];
+            
+            // Check for new notifications to trigger browser alerts
+            if (newNotifications.length > 0) {
+                const latest = newNotifications[0];
+                if (lastNotificationId && latest.id !== lastNotificationId && !latest.isRead) {
+                    showBrowserNotification(latest.title, {
+                        body: latest.message,
+                        tag: latest.id,
+                    });
+                }
+                setLastNotificationId(latest.id);
+            }
+            
+            setNotifications(newNotifications);
         } catch (error) {
             console.error('Failed to fetch notifications:', error);
             setNotifications([]);
@@ -389,16 +405,36 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                                         </Badge>
                                     )}
                                 </div>
-                                {unreadCount > 0 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={markAllAsRead}
-                                        className="text-xs hover:bg-muted/80"
-                                    >
-                                        Mark all read
-                                    </Button>
-                                )}
+                                <div className="flex items-center gap-1">
+                                    {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={async () => {
+                                                const result = await Notification.requestPermission();
+                                                if (result === 'granted') {
+                                                    new Notification('Notifications enabled!', {
+                                                        body: 'You will now receive desktop notifications from 21CA.'
+                                                    });
+                                                }
+                                            }}
+                                            className="text-xs h-8 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                                            title="Enable desktop notifications"
+                                        >
+                                            Enable Desktop
+                                        </Button>
+                                    )}
+                                    {unreadCount > 0 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={markAllAsRead}
+                                            className="text-xs hover:bg-muted/80"
+                                        >
+                                            Mark all read
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <div className="max-h-96 overflow-y-auto">
                                 {notificationsLoading ? (

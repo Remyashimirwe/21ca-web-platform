@@ -101,6 +101,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
             roles: ['instructor', 'admin']
         },
         {
+            title: 'Submissions',
+            href: '/instructor/submissions',
+            icon: FileText,
+            roles: ['instructor', 'admin']
+        },
+        {
             title: 'Analytics',
             href: '/instructor/analytics',
             icon: BarChart3,

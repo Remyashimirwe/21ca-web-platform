@@ -49,11 +49,22 @@ type DbInstructor = {
     title?: string | null;
 };
 
+type DbCategory = {
+    id: string;
+    name: string;
+    slug: string;
+    icon?: string | null;
+    image?: string | null;
+    courseCount?: number;
+};
+
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [mounted, setMounted] = useState(false);
     const [dbCourses, setDbCourses] = useState<DbCourse[]>([]);
     const [dbInstructors, setDbInstructors] = useState<DbInstructor[]>([]);
+    const [dbCategories, setDbCategories] = useState<DbCategory[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setMounted(true);
@@ -67,43 +78,33 @@ const HomePage = () => {
     }, []);
 
     useEffect(() => {
-        const loadPopularCourses = async () => {
+        const loadInitialData = async () => {
+            setIsLoading(true);
             try {
-                const response = await fetch("/api/programs");
-                const data = await response.json();
+                const [coursesRes, instructorsRes, categoriesRes] = await Promise.all([
+                    fetch("/api/programs"),
+                    fetch("/api/instructors"),
+                    fetch("/api/categories")
+                ]);
 
-                if (!response.ok) {
-                    throw new Error(data?.error || "Failed to load popular courses");
-                }
+                const results = await Promise.all([
+                    coursesRes.ok ? coursesRes.json() : Promise.resolve([]),
+                    instructorsRes.ok ? instructorsRes.json() : Promise.resolve([]),
+                    categoriesRes.ok ? categoriesRes.json() : Promise.resolve([])
+                ]);
 
-                setDbCourses(Array.isArray(data) ? data : []);
+                setDbCourses(Array.isArray(results[0]) ? results[0] : []);
+                setDbInstructors(Array.isArray(results[1]) ? results[1] : []);
+                setDbCategories(Array.isArray(results[2]) ? results[2] : []);
+
             } catch (error) {
-                console.error("Failed to load popular courses:", error);
-                setDbCourses([]);
+                console.error("Failed to load homepage data:", error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
-        loadPopularCourses();
-    }, []);
-
-    useEffect(() => {
-        const loadInstructors = async () => {
-            try {
-                const response = await fetch("/api/instructors");
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data?.error || "Failed to load instructors");
-                }
-
-                setDbInstructors(Array.isArray(data) ? data : []);
-            } catch (error) {
-                console.error("Failed to load instructors:", error);
-                setDbInstructors([]);
-            }
-        };
-
-        loadInstructors();
+        loadInitialData();
     }, []);
 
     const carouselSlides = [
@@ -202,32 +203,11 @@ const HomePage = () => {
         },
     ];
 
-    const categories = [
-        {
-            name: "STEM Education",
-            courses: 24,
-            image:
-                "https://images.unsplash.com/photo-1631378297854-185cff6b0986?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8c3RlbSUyMGVkdWNhdGlvbnxlbnwwfHwwfHx8MA%3D%3D",
-        },
-        {
-            name: "Digital & Financial Literacy",
-            courses: 18,
-            image:
-                "https://plus.unsplash.com/premium_photo-1661371340750-f9b83c2e2c51?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fGRpZ2l0YWwlMjBhbmQlMjBmaW5hbmNpYWwlMjBsaXRlcmFjeXxlbnwwfHwwfHx8MA%3D%3D",
-        },
-        {
-            name: "Green Entrepreneurship",
-            courses: 15,
-            image:
-                "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fGVudHJlcHJlbmV1cnNoaXB8ZW58MHx8MHx8fDA%3D",
-        },
-        {
-            name: "Faith-Based Coaching",
-            courses: 12,
-            image:
-                "https://images.unsplash.com/photo-1594453843726-b465f1cac129?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8ZmFpdGglMjBiYXNlYiUyMGNvYWNoaW5nfGVufDB8fDB8fHww",
-        },
-    ];
+    const categories = dbCategories.slice(0, 4).map((cat) => ({
+        name: cat.name,
+        courses: cat.courseCount || 0,
+        image: cat.image || "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&auto=format&fit=crop&q=60",
+    }));
 
     if (!mounted) {
         return <div className="min-h-screen bg-background" />;
@@ -467,63 +447,76 @@ const HomePage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                        <div className="lg:col-span-2 lg:row-span-2">
-                            <div className="group relative min-h-[460px] overflow-hidden rounded-3xl shadow-2xl">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={categories[0].image}
-                                    alt={categories[0].name}
-                                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
-                                <div className="absolute bottom-6 left-6 right-6">
-                                    <div className="rounded-2xl border border-white/15 bg-white/95 p-4 shadow-xl backdrop-blur-sm dark:bg-slate-900/95">
-                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                            {categories[0].name}
-                                        </h3>
-                                        <p className="mt-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                                            {categories[0].courses} Courses Available
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {categories.slice(1).map((category, index) => (
-                            <div key={index} className="lg:col-span-2">
-                                <div className="group relative h-56 overflow-hidden rounded-3xl shadow-xl">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={category.image}
-                                        alt={category.name}
-                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
-                                    <div className="absolute bottom-4 left-4 right-4">
-                                        <div
-                                            className={`rounded-2xl border bg-white/95 p-3 backdrop-blur-sm dark:bg-slate-900/95 ${
-                                                index % 2 === 0
-                                                    ? "border-blue-500/20"
-                                                    : "border-emerald-500/20"
-                                            }`}
-                                        >
-                                            <h4 className="font-bold text-slate-900 dark:text-white">
-                                                {category.name}
-                                            </h4>
-                                            <p
-                                                className={`text-sm font-semibold ${
-                                                    index % 2 === 0
-                                                        ? "text-blue-600 dark:text-blue-400"
-                                                        : "text-emerald-600 dark:text-emerald-400"
-                                                }`}
-                                            >
-                                                {category.courses} Courses
-                                            </p>
+                        {isLoading ? (
+                            // Loading Skeletons
+                            [...Array(3)].map((_, i) => (
+                                <div key={i} className={`rounded-3xl bg-muted animate-pulse ${i === 0 ? "lg:col-span-2 lg:row-span-2 min-h-[460px]" : "lg:col-span-2 h-56"}`} />
+                            ))
+                        ) : categories.length > 0 ? (
+                            <>
+                                <div className="lg:col-span-2 lg:row-span-2">
+                                    <div className="group relative min-h-[460px] overflow-hidden rounded-3xl shadow-2xl">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={categories[0].image}
+                                            alt={categories[0].name}
+                                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
+                                        <div className="absolute bottom-6 left-6 right-6">
+                                            <div className="rounded-2xl border border-white/15 bg-white/95 p-4 shadow-xl backdrop-blur-sm dark:bg-slate-900/95">
+                                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                                    {categories[0].name}
+                                                </h3>
+                                                <p className="mt-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                                                    {categories[0].courses} Courses Available
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                {categories.slice(1).map((category, index) => (
+                                    <div key={index} className="lg:col-span-2">
+                                        <div className="group relative h-56 overflow-hidden rounded-3xl shadow-xl">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={category.image}
+                                                alt={category.name}
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
+                                            <div className="absolute bottom-4 left-4 right-4">
+                                                <div
+                                                    className={`rounded-2xl border bg-white/95 p-3 backdrop-blur-sm dark:bg-slate-900/95 ${
+                                                        index % 2 === 0
+                                                            ? "border-blue-500/20"
+                                                            : "border-emerald-500/20"
+                                                    }`}
+                                                >
+                                                    <h4 className="font-bold text-slate-900 dark:text-white">
+                                                        {category.name}
+                                                    </h4>
+                                                    <p
+                                                        className={`text-sm font-semibold ${
+                                                            index % 2 === 0
+                                                                ? "text-blue-600 dark:text-blue-400"
+                                                                : "text-emerald-600 dark:text-emerald-400"
+                                                        }`}
+                                                    >
+                                                        {category.courses} Courses
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </>
+                        ) : (
+                            <div className="col-span-4 py-20 text-center">
+                                <p className="text-muted-foreground text-lg italic">No categories available at the moment.</p>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </section>
@@ -544,77 +537,89 @@ const HomePage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-                        {courses.map((course) => (
-                            <div
-                                key={course.id}
-                                className="group overflow-hidden rounded-3xl border bg-card shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-                            >
-                                <div className="relative overflow-hidden">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={course.image}
-                                        alt={course.title}
-                                        className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        {isLoading ? (
+                            [...Array(3)].map((_, i) => (
+                                <div key={i} className="h-96 rounded-3xl bg-muted animate-pulse" />
+                            ))
+                        ) : courses.length > 0 ? (
+                            courses.map((course) => (
+                                <div
+                                    key={course.id}
+                                    className="group overflow-hidden rounded-3xl border bg-card shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+                                >
+                                    <div className="relative overflow-hidden">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={course.image}
+                                            alt={course.title}
+                                            className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                                    <div className="absolute bottom-4 left-4 right-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 translate-y-4">
-                                        <div className="flex gap-2">
-                                            <Button size="sm" className="rounded-full px-4">
-                                                Preview
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                className="rounded-full px-4"
-                                            >
-                                                Enroll
-                                            </Button>
+                                        <div className="absolute bottom-4 left-4 right-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 translate-y-4">
+                                            <div className="flex gap-2">
+                                                <Link href={`/courses/${course.slug}`}>
+                                                    <Button size="sm" className="rounded-full px-4">
+                                                        Preview
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    className="rounded-full px-4"
+                                                >
+                                                    Enroll
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="p-6">
-                                    <div className="mb-4 flex items-start justify-between gap-4">
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">Course Price</p>
-                                            <div className="mt-1 flex items-baseline gap-2">
-                                                <h3 className="text-3xl font-black text-primary">
-                                                    {course.price}
-                                                </h3>
-                                                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                                                    Premium
-                                                </span>
+                                    <div className="p-6">
+                                        <div className="mb-4 flex items-start justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Course Price</p>
+                                                <div className="mt-1 flex items-baseline gap-2">
+                                                    <h3 className="text-3xl font-black text-primary">
+                                                        {course.price}
+                                                    </h3>
+                                                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                                                        Premium
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 rounded-full bg-yellow-50 px-3 py-1 text-sm font-medium text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300">
+                                                <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                                                {course.rating.toFixed(1)}
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-1 rounded-full bg-yellow-50 px-3 py-1 text-sm font-medium text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300">
-                                            <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                                            {course.rating.toFixed(1)}
-                                        </div>
-                                    </div>
+                                        <h4 className="line-clamp-2 text-xl font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
+                                            {course.title}
+                                        </h4>
 
-                                    <h4 className="line-clamp-2 text-xl font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
-                                        {course.title}
-                                    </h4>
-
-                                    <div className="mt-4 flex items-center justify-between rounded-2xl border bg-muted/40 p-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-1.5">
-                                            <User size={14} className="text-primary" />
-                                            <span>{course.instructor}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Clock size={14} className="text-primary" />
-                                            <span>{course.duration}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Users size={14} className="text-primary" />
-                                            <span>{course.students}</span>
+                                        <div className="mt-4 flex items-center justify-between rounded-2xl border bg-muted/40 p-4 text-sm text-muted-foreground">
+                                            <div className="flex items-center gap-1.5">
+                                                <User size={14} className="text-primary" />
+                                                <span>{course.instructor}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock size={14} className="text-primary" />
+                                                <span>{course.duration}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Users size={14} className="text-primary" />
+                                                <span>{course.students}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="col-span-3 py-20 text-center">
+                                <p className="text-muted-foreground text-lg italic">No courses found.</p>
                             </div>
-                        ))}
+                        )}
                     </div>
 
                     <div className="mt-12 text-center">
@@ -648,46 +653,56 @@ const HomePage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4">
-                        {instructors.map((instructor, index) => (
-                            <div
-                                key={index}
-                                className="group overflow-hidden rounded-3xl border bg-card shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-                            >
-                                <div className="relative overflow-hidden">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={instructor.image}
-                                        alt={instructor.name}
-                                        className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                                </div>
+                        {isLoading ? (
+                            [...Array(4)].map((_, i) => (
+                                <div key={i} className="h-80 rounded-3xl bg-muted animate-pulse" />
+                            ))
+                        ) : instructors.length > 0 ? (
+                            instructors.map((instructor, index) => (
+                                <div
+                                    key={index}
+                                    className="group overflow-hidden rounded-3xl border bg-card shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+                                >
+                                    <div className="relative overflow-hidden">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={instructor.image}
+                                            alt={instructor.name}
+                                            className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                    </div>
 
-                                <div className="relative -mt-8 mx-4">
-                                    <div className="rounded-2xl border bg-card p-1 shadow-xl">
-                                        <div className="flex justify-center gap-2 py-2">
-                                            {[FaFacebookF, FaTwitter, FaLinkedinIn].map((Icon, socialIndex) => (
-                                                <Button
-                                                    key={socialIndex}
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-9 w-9 rounded-full hover:bg-primary hover:text-white"
-                                                >
-                                                    <Icon size={12} />
-                                                </Button>
-                                            ))}
+                                    <div className="relative -mt-8 mx-4">
+                                        <div className="rounded-2xl border bg-card p-1 shadow-xl">
+                                            <div className="flex justify-center gap-2 py-2">
+                                                {[FaFacebookF, FaTwitter, FaLinkedinIn].map((Icon, socialIndex) => (
+                                                    <Button
+                                                        key={socialIndex}
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-9 w-9 rounded-full hover:bg-primary hover:text-white"
+                                                    >
+                                                        <Icon size={12} />
+                                                    </Button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="p-6 pt-4 text-center">
-                                    <h5 className="text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
-                                        {instructor.name}
-                                    </h5>
-                                    <p className="text-sm text-muted-foreground">{instructor.designation}</p>
+                                    <div className="p-6 pt-4 text-center">
+                                        <h5 className="text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
+                                            {instructor.name}
+                                        </h5>
+                                        <p className="text-sm text-muted-foreground">{instructor.designation}</p>
+                                    </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="col-span-4 py-10 text-center">
+                                <p className="text-muted-foreground italic">Instructors information coming soon.</p>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </section>

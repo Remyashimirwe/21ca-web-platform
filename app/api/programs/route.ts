@@ -37,7 +37,7 @@ async function getOptionalDbUser() {
 
 export async function GET() {
     try {
-        const userResult = await getOptionalDbUser();
+        const userResult = await getOptionalDbUser().catch(() => ({ dbUser: null }));
 
         const courses = await prisma.course.findMany({
             where: {
