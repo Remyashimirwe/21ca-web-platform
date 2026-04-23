@@ -26,6 +26,7 @@ import {
     ExternalLink,
     AlertCircle,
     CalendarDays,
+    Award,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,6 +139,7 @@ type Enrollment = {
     progress: number;
     status: string;
     currentLesson?: string | null;
+    certificates?: { certificateId: string }[];
 };
 
 type LessonProgressItem = {
@@ -1220,6 +1222,24 @@ export default function CourseLearningPage({ course, enrollment, lessonProgress,
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
+                                    {enrollment.progress >= 100 && (
+                                        <Button 
+                                            variant="default" 
+                                            className="bg-green-600 hover:bg-green-700 text-white flex gap-2"
+                                            onClick={() => {
+                                                const certId = enrollment.certificates?.[0]?.certificateId;
+                                                if (certId) {
+                                                    window.open(`/certificates/${certId}`, '_blank');
+                                                } else {
+                                                    // Fallback if certificates weren't pre-loaded
+                                                    router.push('/certificates');
+                                                }
+                                            }}
+                                        >
+                                            <Award className="h-4 w-4" />
+                                            Get Certificate
+                                        </Button>
+                                    )}
                                     <Button variant="outline" onClick={() => router.push('/my-courses')}>
                                         Leave Course
                                     </Button>

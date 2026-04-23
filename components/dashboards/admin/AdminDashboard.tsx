@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import {
+    Activity,
     Users,
     BookOpen,
     TrendingUp,
@@ -19,10 +20,18 @@ import {
     ShieldCheck,
     MessageSquare,
     ChevronRight,
-    Loader2
+    Loader2,
+    Database,
+    Zap,
+    Shield,
+    Server,
+    ExternalLink,
+    LayoutDashboard
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 const AdminDashboard = () => {
@@ -89,11 +98,19 @@ const AdminDashboard = () => {
     };
 
     const quickActions = [
-        { title: 'View All Users', icon: Users, action: 'users', href: '/admin/users' },
-        { title: 'Review Courses', icon: BookOpen, action: 'review-courses', href: '/admin/courses/review' },
-        { title: 'Manage Courses', icon: BookOpen, action: 'courses', href: '/admin/courses' },
-        { title: 'Revenue Reports', icon: DollarSign, action: 'reports', href: '/admin/dashboard' },
-        { title: 'Support Center', icon: AlertCircle, action: 'support', href: '/support' }
+        { title: 'User Management', icon: Users, description: 'Manage accounts & roles', href: '/admin/users' },
+        { title: 'Course Review', icon: BookOpen, description: 'Approve pending content', href: '/admin/courses/review' },
+        { title: 'System Health', icon: Activity, description: 'Monitor server & database', href: '/admin/system' },
+        { title: 'Payments', icon: DollarSign, description: 'View all transactions', href: '/admin/payments' },
+        { title: 'Reports', icon: BarChart3, description: 'Deep dive analytics', href: '/admin/reports' },
+        { title: 'Support Center', icon: AlertCircle, description: 'Open support tickets', href: '/support' }
+    ];
+
+    const systemStats = [
+        { label: 'Server Status', value: 'Operational', icon: Server, color: 'text-emerald-500' },
+        { label: 'Database', value: 'Healthy', icon: Database, color: 'text-blue-500' },
+        { label: 'Latency', value: '42ms', icon: Zap, color: 'text-amber-500' },
+        { label: 'Security', value: 'Protected', icon: Shield, color: 'text-purple-500' },
     ];
 
     if (loading && !stats) {
@@ -110,161 +127,206 @@ const AdminDashboard = () => {
     return (
         <div className="min-h-screen bg-background pt-20">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-                {/* Hero Section */}
-                <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-slate-50 via-white to-blue-50 p-8 shadow-sm dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.15),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.12),transparent_30%)]" />
-                    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl">
-                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
-                                <Sparkles className="h-4 w-4" />
-                                Admin Command Center
-                            </div>
-                            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                                {getGreeting()}, {user?.firstName || 'Admin'}!
-                            </h1>
-                            <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-                                Welcome to your enhanced dashboard. Track performance, manage users, and keep your platform running smoothly.
-                            </p>
+                {/* Header & System Status */}
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                            <Shield className="h-5 w-5" />
+                            <span className="text-sm font-bold uppercase tracking-wider">Command Center</span>
                         </div>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                            {getGreeting()}, {user?.firstName || 'Admin'}
+                        </h1>
+                        <p className="mt-1 text-muted-foreground">
+                            Real-time platform oversight and management.
+                        </p>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[460px]">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-2">
+                        {systemStats.map((stat) => (
+                            <div key={stat.label} className="flex flex-col rounded-xl border border-border/50 bg-card p-3 shadow-sm transition-all hover:border-primary/30">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                                    <span className="text-[10px] font-bold uppercase text-muted-foreground">{stat.label}</span>
+                                </div>
+                                <span className="text-sm font-semibold">{stat.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Main Dashboard Section */}
+                <section className="grid grid-cols-1 gap-6 xl:grid-cols-4">
+                    {/* Insights Panel */}
+                    <Card className="xl:col-span-1 bg-primary text-primary-foreground overflow-hidden relative border-none">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <LayoutDashboard className="h-24 w-24" />
+                        </div>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Platform Health</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
                             {insights.map((item) => (
-                                <div key={item.label} className="rounded-2xl border border-border/60 bg-background/80 p-4 backdrop-blur">
-                                    <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted ${item.tone}`}>
-                                        <item.icon className="h-5 w-5" />
+                                <div key={item.label} className="flex items-center justify-between border-b border-primary-foreground/10 pb-4 last:border-0 last:pb-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-lg bg-white/10 p-2">
+                                            <item.icon className="h-4 w-4 text-white" />
+                                        </div>
+                                        <span className="text-sm font-medium opacity-90">{item.label}</span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                                    <p className="mt-1 text-lg font-semibold text-foreground">{item.value}</p>
+                                    <span className="text-lg font-bold">{item.value}</span>
                                 </div>
                             ))}
-                        </div>
+                            <Button variant="secondary" className="w-full mt-4 font-bold" asChild>
+                                <Link href="/admin/reports">
+                                    Full Analytics Report
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* Quick Stats Grid */}
+                    <div className="xl:col-span-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+                                <Users className="h-4 w-4 text-blue-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats?.totalUsers?.toLocaleString() || '0'}</div>
+                                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                    <ArrowUp className="h-3 w-3" /> {stats?.growthRate}% growth
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-l-4 border-l-emerald-500 hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Active Today</CardTitle>
+                                <UserCheck className="h-4 w-4 text-emerald-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats?.activeUsers?.toLocaleString() || '0'}</div>
+                                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                                    <Zap className="h-3 w-3" /> +{stats?.newUsersToday} new registrations
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-l-4 border-l-amber-500 hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Revenue</CardTitle>
+                                <DollarSign className="h-4 w-4 text-amber-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">${stats?.totalRevenue?.toLocaleString() || '0'}</div>
+                                <p className="text-xs text-amber-600 mt-1">Target: $10,000</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
+                                <BookOpen className="h-4 w-4 text-purple-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats?.totalCourses || '0'}</div>
+                                <p className="text-xs text-purple-600 mt-1">12 pending review</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-l-4 border-l-sky-500 hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Completions</CardTitle>
+                                <Award className="h-4 w-4 text-sky-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats?.courseCompletions || '0'}</div>
+                                <p className="text-xs text-sky-600 mt-1">Across all tracks</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-l-4 border-l-rose-500 hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Support Rate</CardTitle>
+                                <MessageSquare className="h-4 w-4 text-rose-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats?.supportTickets || '0'}</div>
+                                <p className="text-xs text-rose-600 mt-1">98% resolution rate</p>
+                            </CardContent>
+                        </Card>
                     </div>
                 </section>
 
-                {/* Primary Metrics */}
-                <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-                    <Card className="border-l-4 border-l-blue-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                {/* Quick Actions Control Panel */}
+                <Card className="border-none bg-muted/30">
+                    <CardHeader className="pb-3 border-b border-border/50 mb-4 bg-muted/10">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    {stats?.totalUsers?.toLocaleString() || '0'}
-                                </div>
-                            </div>
-                            <div className="rounded-xl bg-blue-500/10 p-3 text-blue-500">
-                                <Users className="h-5 w-5" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-                                <ArrowUp className="h-3 w-3" />
-                                {stats?.growthRate}% from last month
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-green-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                            <div>
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Active Users</CardTitle>
-                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    {stats?.activeUsers?.toLocaleString() || '0'}
-                                </div>
-                            </div>
-                            <div className="rounded-xl bg-green-500/10 p-3 text-green-500">
-                                <UserCheck className="h-5 w-5" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                                <ArrowUp className="h-3 w-3" />
-                                +{stats?.newUsersToday} today
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-purple-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                            <div>
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
-                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    {stats?.totalCourses || '0'}
-                                </div>
-                            </div>
-                            <div className="rounded-xl bg-purple-500/10 p-3 text-purple-500">
-                                <BookOpen className="h-5 w-5" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-purple-600 dark:text-purple-400">All categories</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-amber-500 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                            <div>
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-                                <div className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                                    ${stats?.totalRevenue?.toLocaleString() || '0'}
-                                </div>
-                            </div>
-                            <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500">
-                                <DollarSign className="h-5 w-5" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                                <ArrowUp className="h-3 w-3" />
-                                {stats?.conversionRate}% conversion rate
-                            </p>
-                        </CardContent>
-                    </Card>
-                </section>
-
-                {/* Main Content */}
-                <section className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-                    {/* Recent Activity */}
-                    <Card className="xl:col-span-2 shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="flex items-center gap-2 text-xl">
-                                    <TrendingUp className="h-5 w-5 text-primary" />
-                                    Recent Activity
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Zap className="h-5 w-5 text-amber-500" />
+                                    Quick Controls
                                 </CardTitle>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Latest updates across your platform
-                                </p>
+                                <p className="text-xs text-muted-foreground">Common administrative actions and navigation</p>
                             </div>
-                            <Button variant="outline" size="sm" className="rounded-full">
-                                View all
-                                <ChevronRight className="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                            {quickActions.map((action, index) => (
+                                <Link 
+                                    key={index}
+                                    href={action.href}
+                                    className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/50 bg-background hover:bg-muted transition-all text-center group"
+                                >
+                                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                        <action.icon className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-xs font-bold">{action.title}</span>
+                                    <span className="text-[10px] text-muted-foreground line-clamp-1">{action.description}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Bottom Row - Activity & Top Performing */}
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                    {/* Activity Feed */}
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-primary" />
+                                Platform Event Feed
+                            </CardTitle>
+                            <Button variant="ghost" size="sm" className="text-xs">
+                                View Logs <ExternalLink className="ml-1 h-3 w-3" />
                             </Button>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
                                 {activity.length === 0 ? (
-                                    <p className="text-center text-muted-foreground py-10">No recent activity</p>
+                                    <div className="py-10 text-center text-muted-foreground border-2 border-dashed rounded-xl">
+                                        No recent events recorded.
+                                    </div>
                                 ) : activity.map((act, index) => {
                                     const Icon = getActivityIcon(act.type);
                                     return (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
-                                        >
-                                            <div className={`rounded-xl bg-background p-3 ${getActivityColor(act.type)}`}>
-                                                <Icon className="h-5 w-5" />
+                                        <div key={index} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                                            <div className={cn("mt-1 p-2 rounded-md bg-background border border-border shadow-sm", getActivityColor(act.type))}>
+                                                <Icon className="h-4 w-4" />
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium text-foreground">
-                                                    {act.message}
-                                                </p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {act.time}
-                                                </p>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <p className="text-sm font-semibold">{act.message}</p>
+                                                    <span className="text-[10px] font-medium text-muted-foreground">{act.time}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant="outline" className="text-[10px] h-4">System</Badge>
+                                                    <span className="text-[10px] text-muted-foreground">Action completed successfully</span>
+                                                </div>
                                             </div>
-                                            <Button size="icon" variant="ghost" className="shrink-0 rounded-full">
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
                                         </div>
                                     );
                                 })}
@@ -272,151 +334,60 @@ const AdminDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Top Courses */}
-                    <Card className="shadow-sm">
+                    {/* Top Performing Courses */}
+                    <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-xl">
-                                <Award className="h-5 w-5 text-primary" />
-                                Top Courses
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <TrendingUp className="h-5 w-5 text-primary" />
+                                Top Learning Content
                             </CardTitle>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Best performing learning content
-                            </p>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
                                 {topCourses.length === 0 ? (
-                                    <p className="text-center text-muted-foreground py-10">No data available</p>
+                                    <div className="py-10 text-center text-muted-foreground border-2 border-dashed rounded-xl">
+                                        No performance data yet.
+                                    </div>
                                 ) : topCourses.map((course, index) => (
-                                    <div
-                                        key={index}
-                                        className="rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-300 hover:bg-muted/40"
-                                    >
-                                        <div className="mb-3 flex items-start justify-between gap-3">
-                                            <h5 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
-                                                {course.title}
-                                            </h5>
-                                            <div className={`rounded-full p-1.5 ${course.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                                                {course.trend === 'up' ? (
-                                                    <ArrowUp className="h-3.5 w-3.5" />
-                                                ) : (
-                                                    <ArrowDown className="h-3.5 w-3.5" />
-                                                )}
+                                    <div key={index} className="p-4 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <h4 className="font-bold text-sm line-clamp-1">{course.title}</h4>
+                                            <div className={cn(
+                                                "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                                                course.trend === 'up' ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                                            )}>
+                                                {course.trend === 'up' ? <ArrowUp className="h-2 w-2 mr-1" /> : <ArrowDown className="h-2 w-2 mr-1" />}
+                                                {course.enrollments} Enrolled
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-xs text-muted-foreground">
-                                                <span>{course.enrollments} enrolled</span>
-                                                <span>{course.completion}% completion</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
-                                                    <div
-                                                        className="h-2 rounded-full bg-blue-500"
-                                                        style={{ width: `${course.completion}%` }}
-                                                    />
+                                        <div className="grid grid-cols-2 gap-4 mb-3">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className="text-muted-foreground">Completion Rate</span>
+                                                    <span className="font-bold">{course.completion}%</span>
                                                 </div>
-                                                <span className="text-xs font-semibold text-yellow-500">
-                                                    {course.rating}★
-                                                </span>
+                                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                                    <div className="h-full bg-primary" style={{ width: `${course.completion}%` }} />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1 text-right">
+                                                <span className="text-[10px] text-muted-foreground block">Rating</span>
+                                                <div className="flex justify-end text-yellow-500">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <span key={i} className="text-[10px]">{i < Math.floor(course.rating) ? '★' : '☆'}</span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
+                                        <Button variant="outline" size="sm" className="w-full h-8 text-xs font-bold" asChild>
+                                            <Link href={`/admin/courses/${course.id || ''}`}>Manage Course</Link>
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
                         </CardContent>
                     </Card>
-                </section>
-
-                {/* Secondary Metrics */}
-                <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Course Completions
-                            </CardTitle>
-                            <Clock className="h-4 w-4 text-primary" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{stats?.courseCompletions || '0'}</div>
-                            <p className="text-xs text-muted-foreground">Total to date</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Support Tickets
-                            </CardTitle>
-                            <AlertCircle className="h-4 w-4 text-orange-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{stats?.supportTickets || '0'}</div>
-                            <p className="text-xs text-orange-600 dark:text-orange-400">All resolved</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Conversion Rate
-                            </CardTitle>
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-foreground">{stats?.conversionRate || '0'}%</div>
-                            <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                                <ArrowUp className="h-3 w-3" />
-                                Healthy benchmark
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Avg. Session Time
-                            </CardTitle>
-                            <Clock className="h-4 w-4 text-blue-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-foreground">24m</div>
-                            <p className="text-xs text-blue-600 dark:text-blue-400">+3m from last week</p>
-                        </CardContent>
-                    </Card>
-                </section>
-
-                {/* Quick Actions */}
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xl">Quick Actions</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            Jump into the most common admin tasks
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            {quickActions.map((action, index) => (
-                                <Button
-                                    key={index}
-                                    asChild
-                                    className="h-auto justify-start gap-3 rounded-2xl border border-border/60 bg-background p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-                                    variant="outline"
-                                >
-                                    <Link href={action.href}>
-                                        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                            <action.icon className="h-5 w-5" />
-                                        </span>
-                                        <span className="flex flex-col items-start">
-                                            <span className="text-sm font-semibold">{action.title}</span>
-                                            <span className="text-xs text-muted-foreground">Open section</span>
-                                        </span>
-                                    </Link>
-                                </Button>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                </div>
             </div>
         </div>
     );

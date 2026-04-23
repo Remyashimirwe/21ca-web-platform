@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
 
     const navigationItems: NavigationItem[] = [
         {
-            title: 'Dashboard',
+            title: 'My Dashboard',
             href: '/dashboard',
             icon: Home,
             roles: ['user', 'instructor', 'admin', 'partner']
@@ -107,6 +107,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
             roles: ['instructor', 'admin']
         },
         {
+            title: 'Reports',
+            href: '/instructor/reports',
+            icon: BarChart3,
+            roles: ['instructor', 'admin']
+        },
+        {
             title: 'Analytics',
             href: '/instructor/analytics',
             icon: BarChart3,
@@ -121,8 +127,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
         
         // Admin specific
         {
-            title: 'Admin Panel',
-            href: '/admin',
+            title: 'Admin Dashboard',
+            href: '/admin/dashboard',
             icon: Shield,
             roles: ['admin']
         },

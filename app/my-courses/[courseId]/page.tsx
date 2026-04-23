@@ -75,6 +75,11 @@ export default async function MyCourseLearningPage({ params }: Props) {
             },
         },
         include: {
+            certificates: {
+                select: {
+                    certificateId: true
+                }
+            },
             course: {
                 include: {
                     instructor: {
@@ -154,6 +159,7 @@ export default async function MyCourseLearningPage({ params }: Props) {
                     progress: enrollment.progress,
                     status: enrollment.status,
                     currentLesson: enrollment.currentLesson,
+                    certificates: enrollment.certificates,
                 }}
                 lessonProgress={enrollment.lessonProgress.map((item) => ({
                     lessonId: item.lessonId,

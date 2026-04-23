@@ -103,6 +103,39 @@ export async function POST(req: NextRequest) {
             },
         });
 
+        // Generate certificate if course is completed
+        if (newProgress >= 100) {
+            const existingCertificate = await prisma.certificate.findUnique({
+                where: {
+                    userId_courseId: {
+                        userId: dbUser.id,
+                        courseId: enrollment.courseId,
+                    },
+                },
+            });
+
+            if (!existingCertificate) {
+                await prisma.certificate.create({
+                    data: {
+                        certificateId: `CERT-${Math.random().toString(36).substring(2, 10).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
+                        userId: dbUser.id,
+                        courseId: enrollment.courseId,
+                        issuedAt: new Date(),
+                    },
+                });
+
+                // Also create a notification for the user
+                await prisma.notification.create({
+                    data: {
+                        userId: dbUser.id,
+                        title: 'Course Completed!',
+                        message: `Congratulations! You've completed the course. Your certificate is now available.`,
+                        type: 'CERTIFICATE',
+                    },
+                });
+            }
+        }
+
         return NextResponse.json({
             success: true,
             progress: newProgress,
