@@ -1,7 +1,9 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import { useUser, UserButton } from '@clerk/nextjs';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
     Menu,
     X,
@@ -10,7 +12,8 @@ import {
     Sun,
     Moon,
     User,
-    Monitor
+    Monitor,
+    Settings
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -19,21 +22,21 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import {dark} from "@clerk/themes";
 
 const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
     const [currentLang, setCurrentLang] = useState('EN');
-    const [scrolled, setScrolled] = useState(false);
+    const [, setScrolled] = useState(false);
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const { isSignedIn, user } = useUser();
 
-    // Handle hydration
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    // Handle scroll effect
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
@@ -52,25 +55,15 @@ const Navbar = () => {
     const navigationItems = [
         { name: 'Home', href: '/' },
         { name: 'About', href: '/about' },
-        {
-            name: 'Programs',
-            href: '/programs',
-            dropdown: [
-                'STEM Education',
-                'Digital & Financial Literacy',
-                'Green Entrepreneurship',
-                'Faith-Based Coaching'
-            ]
-        },
-        { name: 'Courses', href: '/courses' },
-        { name: 'Resources', href: '/resources' },
+        { name: 'Programs', href: '/programs' },
+        { name: 'Explore', href: '/programs' },
         {
             name: 'Pages',
-            href: '#',
+            href: '/pages',
             dropdown: [
                 'Blog',
                 'Impact Stories',
-                'Success Metrics',
+                'Price',
                 'Contact'
             ]
         },
@@ -81,7 +74,6 @@ const Navbar = () => {
         setActiveDropdown(activeDropdown === index ? null : index);
     };
 
-    // Don't render until mounted to prevent hydration mismatch
     if (!mounted) {
         return null;
     }
@@ -97,18 +89,15 @@ const Navbar = () => {
         }
     };
 
-    return (
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 font-poppins ${
-            scrolled
-                ? 'bg-background/90 backdrop-blur-lg shadow-lg border-b border-border/50'
-                : 'bg-background border-b border-border'
-        }`}>
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="flex justify-between items-center h-16">
+    const isAdmin = user?.publicMetadata?.role === 'admin';
 
-                    {/* Logo with animation */}
-                    <div className="flex items-center space-x-3 group">
-                        <div className="w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-12">
+    return (
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md shadow-sm border-b border-border font-poppins">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-14 sm:h-16">
+
+                    <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group min-w-0">
+                        <div className="w-9 h-9 sm:w-12 sm:h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 flex-shrink-0">
                             <Image
                                 src="/logo.png"
                                 alt="21st Century Academy Logo"
@@ -118,12 +107,11 @@ const Navbar = () => {
                                 priority
                             />
                         </div>
-                        <span className="text-xl font-semibold text-foreground transition-colors duration-300">
-        21st Century Academy
-    </span>
-                    </div>
+                        <span className="hidden sm:inline-flex text-lg lg:text-xl font-semibold text-foreground transition-colors duration-300 truncate">
+                            21st Century Academy
+                        </span>
+                    </Link>
 
-                    {/* Desktop Navigation */}
                     <div className="hidden lg:flex items-center space-x-8">
                         {navigationItems.map((item, index) => (
                             <div key={item.name} className="relative">
@@ -141,12 +129,11 @@ const Navbar = () => {
                                                     size={16}
                                                     className="transition-transform duration-200 relative z-10"
                                                 />
-                                                {/* Hover underline effect */}
                                                 <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></div>
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent
-                                            className="w-64"
+                                            className="w-64 bg-popover text-popover-foreground border border-border"
                                             align="start"
                                             sideOffset={4}
                                         >
@@ -156,34 +143,30 @@ const Navbar = () => {
                                                     asChild
                                                     className="cursor-pointer transition-all duration-200 hover:translate-x-1"
                                                 >
-                                                    <a
+                                                    <Link
                                                         href={`${item.href}/${subItem.toLowerCase().replace(/\s+/g, '-')}`}
                                                         className="flex w-full"
                                                     >
                                                         {subItem}
-                                                    </a>
+                                                    </Link>
                                                 </DropdownMenuItem>
                                             ))}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ) : (
-                                    <a
+                                    <Link
                                         href={item.href}
                                         className="text-muted-foreground hover:text-foreground font-medium transition-all duration-200 relative group py-2"
                                     >
                                         <span className="relative z-10">{item.name}</span>
-                                        {/* Hover underline effect */}
                                         <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></div>
-                                    </a>
+                                    </Link>
                                 )}
                             </div>
                         ))}
                     </div>
 
-                    {/* Right Side Actions */}
-                    <div className="flex items-center space-x-4">
-
-                        {/* Language Switcher - Desktop Only */}
+                    <div className="flex items-center space-x-2 sm:space-x-4">
                         <div className="hidden lg:block">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -191,7 +174,7 @@ const Navbar = () => {
                                         {currentLang}
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border border-border">
                                     {languages.map((lang) => (
                                         <DropdownMenuItem
                                             key={lang.code}
@@ -209,17 +192,15 @@ const Navbar = () => {
                             </DropdownMenu>
                         </div>
 
-                        {/* Search Icon with animation */}
                         <Button
                             variant="ghost"
                             size="icon"
                             className="hover:scale-110 active:scale-95 transition-all duration-200"
                             aria-label="Search"
                         >
-                            <Search size={20} />
+                            <Search size={18} />
                         </Button>
 
-                        {/* Enhanced Theme Switcher with System option */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
@@ -233,53 +214,102 @@ const Navbar = () => {
                                     </div>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                    onClick={() => setTheme('light')}
-                                    className="cursor-pointer"
-                                >
+                            <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border border-border">
+                                <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer">
                                     <Sun className="mr-2 h-4 w-4" />
                                     Light
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => setTheme('dark')}
-                                    className="cursor-pointer"
-                                >
+                                <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer">
                                     <Moon className="mr-2 h-4 w-4" />
                                     Dark
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => setTheme('system')}
-                                    className="cursor-pointer"
-                                >
+                                <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer">
                                     <Monitor className="mr-2 h-4 w-4" />
                                     System
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        {/* Sign In with hover effect */}
-                        <Button
-                            variant="ghost"
-                            className="hidden lg:inline-flex items-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200"
-                        >
-                            <User size={16} />
-                            <span>Sign In</span>
-                        </Button>
+                        {isSignedIn ? (
+                            <div className="hidden lg:flex items-center space-x-3">
+                                <Link href={isAdmin ? "/admin/dashboard" : "/dashboard"}>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="hover:scale-105 active:scale-95 transition-all duration-200"
+                                    >
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        Dashboard
+                                    </Button>
+                                </Link>
 
-                        {/* Sign Up Button with enhanced animation */}
-                        <Button
-                            className="hidden lg:inline-flex hover:scale-105 active:scale-95 shadow-md hover:shadow-lg transition-all duration-200"
-                        >
-                            Sign Up
-                        </Button>
+                                <UserButton
+                                    appearance={{
+                                        baseTheme: theme === 'dark' ? dark : undefined,
+                                        variables: {
+                                            colorPrimary: theme === 'dark' ? 'hsl(142, 76%, 36%)' : 'hsl(142, 76%, 36%)',
+                                            colorBackground: theme === 'dark' ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)',
+                                            colorInputBackground: theme === 'dark' ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)',
+                                            colorText: theme === 'dark' ? 'hsl(213, 31%, 91%)' : 'hsl(224, 71%, 4%)',
+                                            colorTextSecondary: theme === 'dark' ? 'hsl(215, 16%, 47%)' : 'hsl(215, 16%, 47%)',
+                                            borderRadius: '0.5rem',
+                                        },
+                                        elements: {
+                                            avatarBox: "w-8 h-8 hover:scale-110 transition-transform duration-200",
+                                            userButtonPopoverCard: theme === 'dark'
+                                                ? "border border-slate-700 bg-slate-900/95 backdrop-blur-sm shadow-2xl"
+                                                : "border border-slate-200 bg-white/95 backdrop-blur-sm shadow-2xl",
+                                            userButtonPopoverActions: theme === 'dark' ? "bg-slate-900" : "bg-white",
+                                            userButtonPopoverActionButton: theme === 'dark'
+                                                ? "text-slate-100 hover:bg-slate-800 transition-colors duration-200"
+                                                : "text-slate-900 hover:bg-slate-100 transition-colors duration-200",
+                                            userButtonPopoverActionButtonText: theme === 'dark' ? "text-slate-100" : "text-slate-900",
+                                            userButtonPopoverActionButtonIcon: theme === 'dark' ? "text-slate-400" : "text-slate-600",
+                                            userPreviewTextContainer: theme === 'dark' ? "text-slate-100" : "text-slate-900",
+                                            userPreviewSecondaryIdentifier: theme === 'dark' ? "text-slate-400" : "text-slate-600",
+                                            userButtonPopoverFooter: "hidden",
+                                            formButtonPrimary: "bg-green-600 hover:bg-green-700 text-white",
+                                            card: theme === 'dark'
+                                                ? "bg-slate-900 border-slate-700"
+                                                : "bg-white border-slate-200",
+                                            headerTitle: theme === 'dark' ? "text-slate-100" : "text-slate-900",
+                                            headerSubtitle: theme === 'dark' ? "text-slate-400" : "text-slate-600",
+                                            formFieldInput: theme === 'dark'
+                                                ? "border-slate-700 bg-slate-800 text-slate-100 focus:border-green-500"
+                                                : "border-slate-200 bg-white text-slate-900 focus:border-green-500",
+                                            formFieldLabel: theme === 'dark' ? "text-slate-200" : "text-slate-700",
+                                        }
+                                    }}
+                                    afterSignOutUrl="/"
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <Link href="/sign-in">
+                                    <Button
+                                        variant="ghost"
+                                        className="hidden lg:inline-flex items-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200 border-2"
+                                    >
+                                        <User size={16} />
+                                        <span>Sign In</span>
+                                    </Button>
+                                </Link>
 
-                        {/* Mobile Menu Toggle with animation */}
+                                <Link href="/sign-up">
+                                    <Button
+                                        className="hidden lg:inline-flex hover:scale-105 active:scale-95 shadow-md hover:shadow-lg transition-all duration-200 border-2"
+                                    >
+                                        Sign Up
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
+
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="lg:hidden transition-all duration-200"
+                            className="lg:hidden transition-all duration-200 flex-shrink-0"
                         >
                             <div className="w-6 h-6 relative">
                                 <Menu
@@ -299,11 +329,10 @@ const Navbar = () => {
                     </div>
                 </div>
 
-                {/* Mobile Menu with slide animation */}
                 <div className={`lg:hidden border-t border-border overflow-hidden transition-all duration-300 ${
                     isMenuOpen ? 'max-h-screen py-4 opacity-100' : 'max-h-0 py-0 opacity-0'
                 }`}>
-                    <div className="flex flex-col space-y-4">
+                    <div className="flex flex-col space-y-3 px-1">
                         {navigationItems.map((item, index) => (
                             <div
                                 key={item.name}
@@ -319,7 +348,7 @@ const Navbar = () => {
                                         <Button
                                             variant="ghost"
                                             onClick={() => handleDropdownToggle(index)}
-                                            className="flex items-center justify-between w-full text-left font-medium py-2 h-auto"
+                                            className="flex items-center justify-between w-full text-left font-medium py-2 h-auto px-2"
                                         >
                                             <span>{item.name}</span>
                                             <ChevronDown
@@ -334,28 +363,105 @@ const Navbar = () => {
                                             activeDropdown === index ? 'max-h-screen mt-2 opacity-100' : 'max-h-0 mt-0 opacity-0'
                                         }`}>
                                             {item.dropdown.map((subItem, subIndex) => (
-                                                <a
+                                                <Link
                                                     key={subIndex}
                                                     href={`${item.href}/${subItem.toLowerCase().replace(/\s+/g, '-')}`}
-                                                    className="block text-muted-foreground hover:text-primary py-1 transition-all duration-200 hover:translate-x-1"
+                                                    className="block text-muted-foreground hover:text-primary py-2 transition-all duration-200 hover:translate-x-1 px-2"
                                                 >
                                                     {subItem}
-                                                </a>
+                                                </Link>
                                             ))}
                                         </div>
                                     </div>
                                 ) : (
-                                    <a
+                                    <Link
                                         href={item.href}
-                                        className="block text-foreground font-medium py-2 hover:text-primary transition-all duration-200 hover:translate-x-1"
+                                        className="block text-foreground font-medium py-2 hover:text-primary transition-all duration-200 hover:translate-x-1 px-2"
                                     >
                                         {item.name}
-                                    </a>
+                                    </Link>
                                 )}
                             </div>
                         ))}
 
-                        {/* Mobile Language Switcher */}
+                        <div className={`pt-4 border-t border-border transition-all duration-300 transform ${
+                            isMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
+                        }`} style={{ transitionDelay: `${(navigationItems.length + 2) * 50}ms` }}>
+                            {isSignedIn ? (
+                                <div className="space-y-3">
+                                    <Link href={isAdmin ? "/admin/dashboard" : "/dashboard"}>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full flex items-center justify-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200"
+                                        >
+                                            <Settings size={16} />
+                                            <span>Dashboard</span>
+                                        </Button>
+                                    </Link>
+                                    <div className="flex justify-center">
+                                        <UserButton
+                                            appearance={{
+                                                baseTheme: theme === 'dark' ? dark : undefined,
+                                                variables: {
+                                                    colorPrimary: theme === 'dark' ? 'hsl(142, 76%, 36%)' : 'hsl(142, 76%, 36%)',
+                                                    colorBackground: theme === 'dark' ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)',
+                                                    colorInputBackground: theme === 'dark' ? 'hsl(224, 71%, 4%)' : 'hsl(0, 0%, 100%)',
+                                                    colorText: theme === 'dark' ? 'hsl(213, 31%, 91%)' : 'hsl(224, 71%, 4%)',
+                                                    colorTextSecondary: theme === 'dark' ? 'hsl(215, 16%, 47%)' : 'hsl(215, 16%, 47%)',
+                                                    borderRadius: '0.5rem',
+                                                },
+                                                elements: {
+                                                    avatarBox: "w-10 h-10 hover:scale-110 transition-transform duration-200",
+                                                    userButtonPopoverCard: theme === 'dark'
+                                                        ? "border border-slate-700 bg-slate-900/95 backdrop-blur-sm shadow-2xl"
+                                                        : "border border-slate-200 bg-white/95 backdrop-blur-sm shadow-2xl",
+                                                    userButtonPopoverActions: theme === 'dark' ? "bg-slate-900" : "bg-white",
+                                                    userButtonPopoverActionButton: theme === 'dark'
+                                                        ? "text-slate-100 hover:bg-slate-800 transition-colors duration-200"
+                                                        : "text-slate-900 hover:bg-slate-100 transition-colors duration-200",
+                                                    userButtonPopoverActionButtonText: theme === 'dark' ? "text-slate-100" : "text-slate-900",
+                                                    userButtonPopoverActionButtonIcon: theme === 'dark' ? "text-slate-400" : "text-slate-600",
+                                                    userPreviewTextContainer: theme === 'dark' ? "text-slate-100" : "text-slate-900",
+                                                    userPreviewSecondaryIdentifier: theme === 'dark' ? "text-slate-400" : "text-slate-600",
+                                                    userButtonPopoverFooter: "hidden",
+                                                    formButtonPrimary: "bg-green-600 hover:bg-green-700 text-white",
+                                                    card: theme === 'dark'
+                                                        ? "bg-slate-900 border-slate-700"
+                                                        : "bg-white border-slate-200",
+                                                    headerTitle: theme === 'dark' ? "text-slate-100" : "text-slate-900",
+                                                    headerSubtitle: theme === 'dark' ? "text-slate-400" : "text-slate-600",
+                                                    formFieldInput: theme === 'dark'
+                                                        ? "border-slate-700 bg-slate-800 text-slate-100 focus:border-green-500"
+                                                        : "border-slate-200 bg-white text-slate-900 focus:border-green-500",
+                                                    formFieldLabel: theme === 'dark' ? "text-slate-200" : "text-slate-700",
+                                                }
+                                            }}
+                                            afterSignOutUrl="/"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <Link href="/sign-in">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full flex items-center justify-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200"
+                                        >
+                                            <User size={16} />
+                                            <span>Sign In</span>
+                                        </Button>
+                                    </Link>
+                                    <Link href="/sign-up">
+                                        <Button
+                                            className="w-full hover:scale-105 active:scale-95 shadow-md hover:shadow-lg transition-all duration-200"
+                                        >
+                                            Sign Up
+                                        </Button>
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+
                         <div className={`pt-4 border-t border-border transition-all duration-300 transform ${
                             isMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
                         }`} style={{ transitionDelay: `${navigationItems.length * 50}ms` }}>
@@ -378,7 +484,6 @@ const Navbar = () => {
                             </div>
                         </div>
 
-                        {/* Mobile Theme Switcher */}
                         <div className={`pt-4 border-t border-border transition-all duration-300 transform ${
                             isMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
                         }`} style={{ transitionDelay: `${(navigationItems.length + 1) * 50}ms` }}>
@@ -412,24 +517,6 @@ const Navbar = () => {
                                     System
                                 </Button>
                             </div>
-                        </div>
-
-                        {/* Mobile Auth Buttons */}
-                        <div className={`pt-4 space-y-3 transition-all duration-300 transform ${
-                            isMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
-                        }`} style={{ transitionDelay: `${(navigationItems.length + 2) * 50}ms` }}>
-                            <Button
-                                variant="outline"
-                                className="w-full flex items-center justify-center space-x-2 hover:scale-105 active:scale-95 transition-all duration-200"
-                            >
-                                <User size={16} />
-                                <span>Sign In</span>
-                            </Button>
-                            <Button
-                                className="w-full hover:scale-105 active:scale-95 shadow-md hover:shadow-lg transition-all duration-200"
-                            >
-                                Sign Up
-                            </Button>
                         </div>
                     </div>
                 </div>
