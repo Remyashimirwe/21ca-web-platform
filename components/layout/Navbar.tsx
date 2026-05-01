@@ -356,7 +356,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSidebarToggle, sidebarCollapsed }) =>
                         variant="ghost"
                         size="sm"
                         className="hidden lg:flex items-center gap-2 hover:bg-muted/80 transition-colors"
-                        onClick={() => router.push('/courses')}
+                        onClick={() => router.push('/programs')}
                     >
                         <Zap className="h-4 w-4" />
                         <span className="text-sm">Explore</span>

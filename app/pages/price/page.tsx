@@ -136,10 +136,10 @@ export default function PricingPage() {
     const goToCheckout = (planId: PlanId) => {
         if (planId === 'FREE') {
             if (!isSignedIn) {
-                router.push(`/sign-up?redirect_url=${encodeURIComponent('/courses')}`);
+                router.push(`/sign-up?redirect_url=${encodeURIComponent('/programs')}`);
                 return;
             }
-            router.push('/courses');
+            router.push('/programs');
             return;
         }
 
@@ -257,9 +257,9 @@ export default function PricingPage() {
                                 variant="outline"
                                 size="lg"
                                 className="border-white text-white hover:bg-white hover:text-slate-900"
-                                onClick={() => router.push('/courses')}
+                                onClick={() => router.push('/programs')}
                             >
-                                Back to Courses
+                                Back to Programs
                             </Button>
                         </div>
                     </div>

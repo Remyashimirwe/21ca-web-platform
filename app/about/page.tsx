@@ -636,13 +636,15 @@ const AboutPage = () => {
                             building skills for tomorrow. Your transformation starts today.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Button
-                                size="lg"
-                                className="bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-200 px-8 py-4"
-                            >
-                                Explore Our Programs
-                                <ArrowRight className="ml-2 h-5 w-5" />
-                            </Button>
+                            <Link href="/programs">
+                                <Button
+                                    size="lg"
+                                    className="bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-200 px-8 py-4 w-full sm:w-auto"
+                                >
+                                    Explore Our Programs
+                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                </Button>
+                            </Link>
                             <Link href={"pages/contact"}>
                             <Button
                                 variant="outline"

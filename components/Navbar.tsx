@@ -56,6 +56,7 @@ const Navbar = () => {
         { name: 'Home', href: '/' },
         { name: 'About', href: '/about' },
         { name: 'Programs', href: '/programs' },
+        { name: 'Explore', href: '/programs' },
         {
             name: 'Pages',
             href: '/pages',

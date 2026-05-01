@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false, onToggle }) => {
         },
         {
             title: 'Browse Courses',
-            href: '/courses',
+            href: '/programs',
             icon: GraduationCap,
             roles: ['user']
         },

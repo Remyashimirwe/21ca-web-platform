@@ -150,14 +150,31 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const enrollment = await prisma.enrollment.create({
-            data: {
-                userId: dbUser.id,
-                courseId: course.id,
-                status: 'ACTIVE',
-                paymentStatus: 'PAID',
-                transactionRef: txRef,
-            } as any,
+        const enrollment = await prisma.$transaction(async (tx) => {
+            const newEnrollment = await tx.enrollment.create({
+                data: {
+                    userId: dbUser.id,
+                    courseId: course.id,
+                    status: 'ACTIVE',
+                    paymentStatus: 'PAID',
+                    transactionRef: txRef,
+                } as any,
+            });
+
+            await tx.payment.create({
+                data: {
+                    amount: paidAmount,
+                    currency: paidCurrency,
+                    paymentMethod: 'flutterwave',
+                    paymentIntentId: String(transactionId),
+                    status: 'COMPLETED',
+                    paidAt: new Date(),
+                    userId: dbUser.id,
+                    courseId: course.id,
+                },
+            });
+
+            return newEnrollment;
         });
 
         return NextResponse.json({

@@ -18,6 +18,9 @@ export default function ConditionalNavbar() {
     '/payment',
     '/premium',
     '/courses/',
+    '/programs/',
+    '/community',
+    '/certificates',
   ];
 
   const shouldHideNavbar = hiddenRoutes.some((route) =>

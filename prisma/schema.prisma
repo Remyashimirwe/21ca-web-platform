@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
@@ -41,8 +41,55 @@ model User {
   submissions       Submission[]
   certificates      Certificate[]
   calendarEvents    CalendarEvent[]
+  posts             Post[]
+  comments          Comment[]
+  likes             Like[]
 
   @@map("users")
+}
+
+// Community Models
+model Post {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  imageUrl  String?
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+  comments Comment[]
+  likes    Like[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId   String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([postId, userId])
+  @@map("likes")
 }
 
 // CalendarEvent model
@@ -549,4 +596,19 @@ enum PremiumPlan {
   MONTHLY
   ANNUAL
   LIFETIME
+}
+
+model PremiumPlanSettings {
+  id          String      @id @default(cuid())
+  plan        PremiumPlan @unique
+  price       Decimal
+  currency    String      @default("USD")
+  name        String
+  description String?
+  features    String[]
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("premium_plan_settings")
 }

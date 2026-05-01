@@ -1,12 +1,13 @@
 import { headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
+import { prisma } from '@/lib/prisma'
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
 
 export async function POST(req: NextRequest) {
     if (!webhookSecret) {
-        throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local')
+        throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to ..env or ..env.local')
     }
 
     // Get the headers
@@ -49,20 +50,45 @@ export async function POST(req: NextRequest) {
     const { id } = evt.data
     const eventType = evt.type
 
-    if (eventType === 'user.created') {
-        // Automatically assign 'user' role to new users
+    if (eventType === 'user.created' || eventType === 'user.updated') {
+        const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+        const email = email_addresses[0]?.email_address;
+
         try {
-            const { clerkClient } = await import('@clerk/nextjs/server')
+            // Update metadata for user role
+            const { clerkClient } = await import('@clerk/nextjs/server');
+            const client = await clerkClient();
             
-            await clerkClient.users.updateUserMetadata(id, {
-                publicMetadata: {
-                    role: 'user' // Default role for new users
-                }
-            })
-            
-            console.log(`Assigned 'user' role to user ${id}`)
+            if (eventType === 'user.created') {
+                await client.users.updateUserMetadata(id, {
+                    publicMetadata: {
+                        role: 'user'
+                    }
+                });
+                console.log(`Assigned 'user' role to user ${id}`);
+            }
+
+            // Sync with database
+            await prisma.user.upsert({
+                where: { clerkId: id },
+                update: {
+                    email: email,
+                    firstName: first_name,
+                    lastName: last_name,
+                    imageUrl: image_url,
+                },
+                create: {
+                    clerkId: id,
+                    email: email,
+                    firstName: first_name,
+                    lastName: last_name,
+                    imageUrl: image_url,
+                    role: 'USER',
+                },
+            });
+            console.log(`Synced user ${id} with database`);
         } catch (error) {
-            console.error('Error updating user metadata:', error)
+            console.error('Error syncing user:', error);
         }
     }
 

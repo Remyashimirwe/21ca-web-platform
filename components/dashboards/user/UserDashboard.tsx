@@ -302,7 +302,7 @@ const UserDashboard = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Link href="/courses">
+                        <Link href="/programs">
                             <Button
                                 className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
                                 variant="outline"
@@ -311,15 +311,17 @@ const UserDashboard = () => {
                                 <span>Browse Courses</span>
                             </Button>
                         </Link>
+                        <Link href="/community">
+                            <Button
+                                className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
+                                variant="outline"
+                            >
+                                <Users className="h-6 w-6 text-primary" />
+                                <span>Join Community</span>
+                            </Button>
+                        </Link>
                         <Button
-                            className="h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
-                            variant="outline"
-                        >
-                            <Users className="h-6 w-6 text-primary" />
-                            <span>Join Community</span>
-                        </Button>
-                        <Button
-                            className="h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
+                            className="w-full h-auto p-4 flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-200"
                             variant="outline"
                         >
                             <Star className="h-6 w-6 text-primary" />

@@ -2,15 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
-const premiumPrices: Record<string, number> = {
-    MONTHLY: 25,
-    ANNUAL: 200,
-    LIFETIME: 500,
-
-};
-
-const supportedPlans = new Set(['MONTHLY', 'ANNUAL', 'LIFETIME']);
-
 export async function POST(req: NextRequest) {
     try {
         const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
@@ -31,8 +22,12 @@ export async function POST(req: NextRequest) {
         const body = await req.json().catch(() => ({}));
         const planId = String(body?.planId || '').toUpperCase();
 
-        if (!supportedPlans.has(planId)) {
-            return NextResponse.json({ error: 'Invalid premium plan' }, { status: 400 });
+        const planSettings = await prisma.premiumPlanSettings.findUnique({
+            where: { plan: planId as any, isActive: true },
+        });
+
+        if (!planSettings) {
+            return NextResponse.json({ error: 'Invalid or inactive premium plan' }, { status: 400 });
         }
 
         const user = await prisma.user.findUnique({
@@ -49,8 +44,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const amount = premiumPrices[planId];
-        const txRef = `premium_${user.id}_${planId}_${Date.now()}`;
+        const amount = Number(planSettings.price);
+        const txRef = `premium_${user.id}_${planSettings.plan}_${Date.now()}`;
 
         const baseUrl =
             process.env.NEXT_PUBLIC_APP_URL ||
@@ -60,7 +55,7 @@ export async function POST(req: NextRequest) {
         const paymentPayload = {
             tx_ref: txRef,
             amount,
-            currency: 'USD',
+            currency: planSettings.currency,
             payment_options: 'card,mobilemoney,ussd',
             redirect_url: `${baseUrl}/payment/success?type=premium`,
             customer: {
@@ -68,13 +63,13 @@ export async function POST(req: NextRequest) {
                 name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
             },
             customizations: {
-                title: 'Premium Subscription',
-                description: `Payment for ${planId} premium access`,
+                title: `${planSettings.name} Premium Access`,
+                description: planSettings.description || `Payment for ${planSettings.name} premium access`,
             },
             meta: {
                 type: 'premium',
                 userId: user.id,
-                planId,
+                planId: planSettings.plan,
             },
         };
 
