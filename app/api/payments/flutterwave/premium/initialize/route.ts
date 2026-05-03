@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
     try {
+//change it into the afripay api for payment and to us the axios 
         const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
 
         if (!secretKey) {
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
             paymentLink: data?.data?.link || data?.link,
             txRef,
             amount,
+// we want also to use the change currency so that you can pay in rwf and other currncy
             currency: 'USD',
         });
     } catch (error) {
