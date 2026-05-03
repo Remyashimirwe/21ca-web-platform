@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 const premiumPricing: Record<string, { durationDays: number }> = {
     MONTHLY: { durationDays: 30 },
     ANNUAL: { durationDays: 365 },
-    LIFETIME: { durationDays: 36500 },
+    LIFETIME: { durationDays: 36500 }, // reducing the life time cz we need the stable time
 };
 
 export async function POST(req: NextRequest) {
