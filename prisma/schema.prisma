@@ -464,8 +464,8 @@ model Payment {
 
   user     User   @relation(fields: [userId], references: [id])
   userId   String
-  course   Course @relation(fields: [courseId], references: [id])
-  courseId String
+  course   Course? @relation(fields: [courseId], references: [id])
+  courseId String?
 
   @@map("payments")
 }

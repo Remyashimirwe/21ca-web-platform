@@ -95,21 +95,50 @@ export default function PremiumPage() {
 
         setInitializingPayment(planId);
         try {
-            const res = await fetch('/api/payments/flutterwave/premium/initialize', {
+            const res = await fetch('/api/payments/afripay/premium/initialize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ planId }),
             });
 
             const data = await res.json();
-            if (res.ok && data.paymentLink) {
-                window.location.href = data.paymentLink;
+            
+            if (!res.ok) {
+                console.error('Payment initialization failed:', {
+                    status: res.status,
+                    statusText: res.statusText,
+                    error: data?.error,
+                    data,
+                });
+                alert(data?.error || 'Failed to initialize payment');
+                return;
+            }
+            
+            if (data.ok && data.formData && data.checkoutUrl) {
+                // Handle Afripay form submission
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = data.checkoutUrl;
+
+                // Append all form data as hidden inputs
+                Object.entries(data.formData).forEach(([key, value]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = String(value);
+                    form.appendChild(input);
+                });
+
+                // Append to body and submit
+                document.body.appendChild(form);
+                form.submit();
             } else {
-                alert(data.error || 'Failed to initialize payment');
+                console.error('Invalid response format:', data);
+                alert(data?.error || 'Invalid payment response format');
             }
         } catch (error) {
             console.error('Payment initialization error:', error);
-            alert('Something went wrong. Please try again.');
+            alert(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
         } finally {
             setInitializingPayment(null);
         }

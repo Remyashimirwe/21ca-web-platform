@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getCurrencyByCountry } from '@/lib/flutterwave';
+import { getCurrencyByCountry, AFRIPAY_CHECKOUT_URL } from '@/lib/afripay';
 
 type CourseData = {
     id: string;
@@ -57,7 +57,7 @@ export default function PaymentPage() {
 
         setProcessing(true);
         try {
-            const res = await fetch('/api/payments/flutterwave/initialize', {
+            const res = await fetch('/api/payments/afripay/initialize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -69,15 +69,40 @@ export default function PaymentPage() {
             const data = await res.json();
 
             if (!res.ok) {
+                console.error('Payment initialization failed:', {
+                    status: res.status,
+                    statusText: res.statusText,
+                    error: data?.error,
+                    data,
+                });
                 throw new Error(data?.error || 'Failed to initialize payment');
             }
 
-            if (data.paymentLink) {
-                window.location.href = data.paymentLink;
+            if (data.ok && data.formData && data.checkoutUrl) {
+                // Handle Afripay form submission
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = data.checkoutUrl;
+
+                // Append all form data as hidden inputs
+                Object.entries(data.formData).forEach(([key, value]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = String(value);
+                    form.appendChild(input);
+                });
+
+                // Append to body and submit
+                document.body.appendChild(form);
+                form.submit();
+            } else {
+                console.error('Invalid response format:', data);
+                alert('Invalid payment response format');
             }
         } catch (error) {
-            console.error(error);
-            alert('Payment initialization failed');
+            console.error('Payment error:', error);
+            alert(error instanceof Error ? error.message : 'Payment initialization failed');
         } finally {
             setProcessing(false);
         }
@@ -137,7 +162,7 @@ export default function PaymentPage() {
                         </div>
 
                         <Button className="w-full" onClick={handlePay} disabled={processing}>
-                            {processing ? 'Redirecting to payment...' : 'Pay with Flutterwave'}
+                            {processing ? 'Redirecting to payment...' : 'Pay with Afripay'}
                         </Button>
                     </CardContent>
                 </Card>
