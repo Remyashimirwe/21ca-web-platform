@@ -18,7 +18,7 @@ A modern educational platform built with Next.js 15, featuring a community forum
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/), [Shadcn UI](https://ui.shadcn.com/)
 - **Database**: [Prisma](https://www.prisma.io/) with [PostgreSQL](https://www.postgresql.org/)
 - **Auth**: [Clerk](https://clerk.com/)
-- **Payments**: [Stripe](https://stripe.com/)
+- **Payments**: [Afripay](https://stripe.com/)
 - **State Management & Data Fetching**: React Server Components & API Routes
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
 - **Icons**: [Lucide React](https://lucide.dev/), [React Icons](https://react-icons.github.io/react-icons/)
