@@ -85,7 +85,7 @@ export async function GET(req: NextRequest): Promise<Response> {
             ...course,
             modulesCount: course.modules.length,
             lessonsCount: course.modules.reduce((total: number, module: any) => total + module.lessons.length, 0),
-            tags: course.tags.map((t) => t.tag),
+            tags: course.tags.map((t: any) => t.tag),
         }));
 
         return NextResponse.json(payload);
