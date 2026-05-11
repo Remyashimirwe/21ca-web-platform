@@ -39,9 +39,9 @@ export async function GET(req: NextRequest) {
                 }
             });
 
-            courses.forEach(course => {
+            courses.forEach((course: any) => {
                 // Add Assignments
-                course.assignments.forEach(assignment => {
+                course.assignments.forEach((assignment: any) => {
                     if (assignment.dueDate) {
                         events.push({
                             id: assignment.id,
@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
                 });
 
                 // Add Live Sessions
-                course.modules.forEach(module => {
-                    module.lessons.forEach(lesson => {
+                course.modules.forEach((module: any) => {
+                    module.lessons.forEach((lesson: any) => {
                         if (lesson.liveSession) {
                             const startTime = new Date(lesson.liveSession.date);
                             // Assuming 'time' is stored as "HH:mm"
@@ -104,10 +104,10 @@ export async function GET(req: NextRequest) {
                 }
             });
 
-            enrollments.forEach(enrollment => {
+            enrollments.forEach((enrollment: any) => {
                 const course = enrollment.course;
                 // Add Assignments
-                course.assignments.forEach(assignment => {
+                course.assignments.forEach((assignment: any) => {
                     if (assignment.dueDate) {
                         events.push({
                             id: assignment.id,
@@ -123,8 +123,8 @@ export async function GET(req: NextRequest) {
                 });
 
                 // Add Live Sessions
-                course.modules.forEach(module => {
-                    module.lessons.forEach(lesson => {
+                course.modules.forEach((module: any) => {
+                    module.lessons.forEach((lesson: any) => {
                         if (lesson.liveSession) {
                             const startTime = new Date(lesson.liveSession.date);
                             if (lesson.liveSession.time) {
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
                 }
             });
 
-            liveSessions.forEach(session => {
+            liveSessions.forEach((session: any) => {
                 const startTime = new Date(session.date);
                 if (session.time) {
                     const [hours, minutes] = session.time.split(':').map(Number);
@@ -192,7 +192,7 @@ export async function GET(req: NextRequest) {
             where: { userId: dbUser.id }
         });
 
-        userEvents.forEach(e => {
+        userEvents.forEach((e: any) => {
             events.push({
                 id: e.id,
                 title: e.title,
