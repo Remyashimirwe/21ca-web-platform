@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         });
 
         // Add dummy completion percentage and trend for UI
-        const formattedCourses = topCourses.map(course => {
+        const formattedCourses = topCourses.map((course: any) => {
             // Calculate a completion rate - in a real app this would be more complex
             // For now let's use a random but stable number based on ID
             const completion = Math.floor(30 + (course.id.length % 60));
