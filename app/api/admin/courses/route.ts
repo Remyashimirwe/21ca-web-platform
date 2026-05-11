@@ -84,7 +84,7 @@ export async function GET(req: NextRequest): Promise<Response> {
         const payload = courses.map((course: typeof courses[number]) => ({
             ...course,
             modulesCount: course.modules.length,
-            lessonsCount: course.modules.reduce((total: number, module) => total + module.lessons.length, 0),
+            lessonsCount: course.modules.reduce((total: number, module: any) => total + module.lessons.length, 0),
             tags: course.tags.map((t) => t.tag),
         }));
 
