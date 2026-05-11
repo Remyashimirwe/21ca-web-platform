@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma';
 import CourseLearningPage from '@/components/courses/CourseLearningPage';
 
 interface Props {
-    params: {
+    params: Promise<{
         courseId: string;
-    };
+    }>;
 }
 
 function serializeCourse(course: any) {
@@ -52,6 +52,7 @@ function serializeCourse(course: any) {
 }
 
 export default async function MyCourseLearningPage({ params }: Props) {
+    const { courseId } = await params;
     const { userId } = await auth();
     const user = await currentUser();
 
@@ -71,7 +72,7 @@ export default async function MyCourseLearningPage({ params }: Props) {
         where: {
             userId_courseId: {
                 userId: dbUser.id,
-                courseId: params.courseId,
+                courseId: courseId,
             },
         },
         include: {
@@ -134,7 +135,7 @@ export default async function MyCourseLearningPage({ params }: Props) {
         where: {
             userId_courseId: {
                 userId: dbUser.id,
-                courseId: params.courseId,
+                courseId: courseId,
             },
         },
         select: {
@@ -146,7 +147,7 @@ export default async function MyCourseLearningPage({ params }: Props) {
         where: {
             studentId: dbUser.id,
             assignment: {
-                courseId: params.courseId
+                courseId: courseId
             }
         },
         include: {

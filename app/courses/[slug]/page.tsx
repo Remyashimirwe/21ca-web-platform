@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import CourseDetailPage from '@/components/courses/CourseDetailPage';
 
 type PageProps = {
-    params: {
+    params: Promise<{
         slug: string;
-    };
+    }>;
 };
 
 type CourseDetailData = {
@@ -101,8 +101,9 @@ type CourseQueryResult = {
 };
 
 export async function generateMetadata({ params }: PageProps) {
+    const { slug } = await params;
     const course = await prisma.course.findUnique({
-        where: { slug: params.slug },
+        where: { slug: slug },
         select: {
             title: true,
             shortDescription: true,
@@ -162,8 +163,9 @@ function serializeCourse(course: CourseQueryResult): CourseDetailData {
 }
 
 export default async function CoursePage({ params }: PageProps) {
+    const { slug } = await params;
     const course = await prisma.course.findUnique({
-        where: { slug: params.slug },
+        where: { slug: slug },
         include: {
             instructor: {
                 select: {

@@ -7,8 +7,9 @@ import { prisma } from '@/lib/prisma';
 export default async function AdminCourseDetailPage({
                                                         params,
                                                     }: {
-    params: { courseId: string };
+    params: Promise<{ courseId: string }>;
 }) {
+    const { courseId } = await params;
     const { userId } = await auth();
     const user = await currentUser();
 
@@ -22,7 +23,7 @@ export default async function AdminCourseDetailPage({
     }
 
     const course = await prisma.course.findUnique({
-        where: { id: params.courseId },
+        where: { id: courseId },
         include: {
             instructor: {
                 select: {
