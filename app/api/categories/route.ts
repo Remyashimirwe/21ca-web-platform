@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        const formattedCategories = categories.map(cat => ({
+        const formattedCategories = categories.map((cat: any) => ({
             ...cat,
             courseCount: cat._count.courses
         }));

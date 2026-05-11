@@ -9,7 +9,6 @@ import {
     Clock,
     Users,
     Video,
-    MapPin,
     Edit,
     Trash2,
     X
