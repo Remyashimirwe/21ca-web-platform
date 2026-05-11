@@ -72,7 +72,7 @@ export async function GET(): Promise<Response> {
             },
         });
 
-        const courses = enrollments.map((enrollment) => ({
+        const courses = enrollments.map((enrollment: typeof enrollments[number]) => ({
             enrollmentId: enrollment.id,
             enrolledAt: enrollment.enrolledAt,
             progress: enrollment.progress,

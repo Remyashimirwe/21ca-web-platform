@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
                     dateTime: end.toISOString(),
                     timeZone: timezone,
                 },
-                attendees: attendees.map((email) => ({
+                attendees: attendees.map((email: string) => ({
                     emailAddress: { address: email },
                     type: 'required',
                 })),

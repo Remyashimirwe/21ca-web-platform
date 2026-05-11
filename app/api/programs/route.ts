@@ -81,7 +81,7 @@ export async function GET() {
             enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
         }
 
-        const payload = courses.map((course) => ({
+        const payload = courses.map((course: typeof courses[number]) => ({
             ...course,
             isEnrolled: enrolledCourseIds.has(course.id),
         }));
