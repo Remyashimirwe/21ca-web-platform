@@ -101,7 +101,10 @@ export async function GET() {
                 date: asg.dueDate,
                 type: 'Deadline',
             })),
-        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
+        ]
+            .filter(event => event.date !== null)
+            .sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime())
+            .slice(0, 5);
 
         return NextResponse.json({
             userStats: {

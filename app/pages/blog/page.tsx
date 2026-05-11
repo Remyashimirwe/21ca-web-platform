@@ -197,7 +197,7 @@ const BlogPage = () => {
                 case 'comments':
                     return b.comments - a.comments;
                 default:
-                    return new Date(b.publishedAt) - new Date(a.publishedAt);
+                    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
             }
         });
 

@@ -4,11 +4,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
     _req: NextRequest,
-    { params }: { params: { id: string } }
-) {
+    { params }: { params: Promise<{ courseId: string }> }
+): Promise<Response> {
     try {
         const { userId } = await auth();
-        const courseId = params.id;
+        const { courseId } = await params;
 
         if (!courseId) {
             return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });

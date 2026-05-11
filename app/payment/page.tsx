@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,7 +57,7 @@ const supportedCurrencies = new Set([
     'GBP',
 ]);
 
-export default function PaymentPage() {
+function PaymentContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -417,5 +417,17 @@ export default function PaymentPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function PaymentPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen pt-24 flex items-center justify-center">
+                <p className="text-muted-foreground">Loading payment page...</p>
+            </div>
+        }>
+            <PaymentContent />
+        </Suspense>
     );
 }

@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
             }
 
             // Determine plan from payment metadata or default to MONTHLY
-            const planId = 'MONTHLY'; // This should ideally come from payment metadata
+            const planId = 'MONTHLY' as 'MONTHLY' | 'ANNUAL' | 'LIFETIME'; // This should ideally come from payment metadata
 
             const expiresAt =
                 planId === 'LIFETIME'
@@ -126,6 +126,11 @@ export async function POST(req: NextRequest) {
             // Handle course enrollment
             const courseId = payment.courseId;
             const userId = payment.userId;
+
+            if (!courseId) {
+                console.error(`Course payment missing courseId: ${payment.id}`);
+                return NextResponse.json({ error: 'Invalid course payment' }, { status: 400 });
+            }
 
             // Check if user is already enrolled
             const enrollmentExists = await prisma.enrollment.findUnique({

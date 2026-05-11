@@ -27,17 +27,18 @@ async function requireAdmin() {
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { courseId: string } }
-) {
+    { params }: { params: Promise<{ courseId: string }> }
+): Promise<Response> {
     try {
+        const { courseId } = await params;
         const adminCheck = await requireAdmin();
-        if ('error' in adminCheck) return adminCheck.error;
+        if ('error' in adminCheck) return adminCheck.error as Response;
 
         const body = await req.json().catch(() => ({}));
         const reason = typeof body.reason === 'string' ? body.reason : 'Your course submission needs changes before approval.';
 
         const course = await prisma.course.update({
-            where: { id: params.courseId },
+            where: { id: courseId },
             data: {
                 status: 'ARCHIVED',
                 isPublished: false,

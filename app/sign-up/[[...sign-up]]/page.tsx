@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -17,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function SignUpPage() {
+function SignUpContent() {
   const { theme, setTheme } = useTheme();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect_url") || "/dashboard";
@@ -211,5 +212,13 @@ export default function SignUpPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-background" />}>
+      <SignUpContent />
+    </Suspense>
   );
 }

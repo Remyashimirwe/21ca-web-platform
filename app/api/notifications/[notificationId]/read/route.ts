@@ -4,16 +4,17 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { notificationId: string } }
+    { params }: { params: Promise<{ notificationId: string }> }
 ) {
     try {
+        const { notificationId } = await params;
         const { userId } = await auth();
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         await prisma.notification.update({
-            where: { id: params.notificationId },
+            where: { id: notificationId },
             data: { isRead: true }
         });
 

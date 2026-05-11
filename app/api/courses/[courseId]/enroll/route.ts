@@ -38,16 +38,17 @@ async function getOrCreateDbUser() {
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { courseId: string } }
-) {
+    { params }: { params: Promise<{ courseId: string }> }
+): Promise<Response> {
     try {
+        const { courseId } = await params;
         const userResult = await getOrCreateDbUser();
-        if ('error' in userResult) return userResult.error;
+        if ('error' in userResult) return userResult.error as Response;
 
         const { dbUser } = userResult;
 
         const course = await prisma.course.findUnique({
-            where: { id: params.courseId },
+            where: { id: courseId },
         });
 
         if (!course) {

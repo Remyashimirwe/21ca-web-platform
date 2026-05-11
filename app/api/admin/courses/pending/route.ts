@@ -24,10 +24,10 @@ async function requireAdmin() {
     return { dbUser };
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
     try {
         const adminCheck = await requireAdmin();
-        if ('error' in adminCheck) return adminCheck.error;
+        if ('error' in adminCheck) return adminCheck.error as Response;
 
         const courses = await prisma.course.findMany({
             where: {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ type CourseData = {
     currency?: string;
 };
 
-export default function PaymentPage() {
+function PaymentContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -168,5 +168,17 @@ export default function PaymentPage() {
                 </Card>
             </div>
         </div>
+    );
+}
+
+export default function PaymentPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen pt-24 flex items-center justify-center">
+                <p className="text-muted-foreground">Loading payment page...</p>
+            </div>
+        }>
+            <PaymentContent />
+        </Suspense>
     );
 }

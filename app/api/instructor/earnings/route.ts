@@ -91,21 +91,23 @@ export async function GET(req: NextRequest) {
         const available = totalEarnings * 0.7; // 70% available after platform fees
 
         // Top earning courses
-        const courseRevenue = payments.reduce((acc: any, payment) => {
-            const courseId = payment.course.id;
-            if (!acc[courseId]) {
-                acc[courseId] = {
-                    id: courseId,
-                    title: payment.course.title,
-                    thumbnail: payment.course.thumbnail,
-                    revenue: 0,
-                    sales: 0
-                };
-            }
-            acc[courseId].revenue += Number(payment.amount);
-            acc[courseId].sales += 1;
-            return acc;
-        }, {});
+        const courseRevenue = payments
+            .filter(p => p.course !== null)
+            .reduce((acc: any, payment) => {
+                const courseId = payment.course!.id;
+                if (!acc[courseId]) {
+                    acc[courseId] = {
+                        id: courseId,
+                        title: payment.course!.title,
+                        thumbnail: payment.course!.thumbnail,
+                        revenue: 0,
+                        sales: 0
+                    };
+                }
+                acc[courseId].revenue += Number(payment.amount);
+                acc[courseId].sales += 1;
+                return acc;
+            }, {});
 
         const topCourses = Object.values(courseRevenue)
             .sort((a: any, b: any) => b.revenue - a.revenue)

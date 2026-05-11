@@ -153,7 +153,7 @@ const ContactPage = () => {
         },
     ];
 
-    const handleInputChange = (e: { target: { name: never; value: never; }; }) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -161,7 +161,7 @@ const ContactPage = () => {
         }));
     };
 
-    const handleSubmit = async (e: { preventDefault: () => void; }) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsSubmitting(true);
 

@@ -26,11 +26,13 @@ import {
 import { Button } from "@/components/ui/button";
 
 const SupportPage = () => {
+    type HelpTabKey = "getting-started" | "technical" | "account";
+    
     const [mounted, setMounted] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const [expandedFaq, setExpandedFaq] = useState(null);
-    const [activeTab, setActiveTab] = useState("getting-started");
+    const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<HelpTabKey>("getting-started");
 
     useEffect(() => {
         setMounted(true);
@@ -141,7 +143,7 @@ const SupportPage = () => {
         },
     ];
 
-    const helpTopics = {
+    const helpTopics: Record<HelpTabKey, { title: string; duration: string; type: string }[]> = {
         "getting-started": [
             { title: "Creating Your Account", duration: "2 min read", type: "article" },
             { title: "Navigating the Dashboard", duration: "3 min read", type: "article" },
@@ -305,7 +307,7 @@ const SupportPage = () => {
                                         ].map((tab) => (
                                             <button
                                                 key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
+                                                onClick={() => setActiveTab(tab.id as HelpTabKey)}
                                                 className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                                                     activeTab === tab.id
                                                         ? "bg-primary text-primary-foreground shadow-sm"

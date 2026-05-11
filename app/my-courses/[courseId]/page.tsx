@@ -75,11 +75,6 @@ export default async function MyCourseLearningPage({ params }: Props) {
             },
         },
         include: {
-            certificates: {
-                select: {
-                    certificateId: true
-                }
-            },
             course: {
                 include: {
                     instructor: {
@@ -134,6 +129,19 @@ export default async function MyCourseLearningPage({ params }: Props) {
         notFound();
     }
 
+    // Fetch certificate separately since it's not related to Enrollment
+    const certificate = await prisma.certificate.findUnique({
+        where: {
+            userId_courseId: {
+                userId: dbUser.id,
+                courseId: params.courseId,
+            },
+        },
+        select: {
+            certificateId: true
+        }
+    });
+
     const submissions = await prisma.submission.findMany({
         where: {
             studentId: dbUser.id,
@@ -159,7 +167,7 @@ export default async function MyCourseLearningPage({ params }: Props) {
                     progress: enrollment.progress,
                     status: enrollment.status,
                     currentLesson: enrollment.currentLesson,
-                    certificates: enrollment.certificates,
+                    certificates: certificate ? [certificate] : [],
                 }}
                 lessonProgress={enrollment.lessonProgress.map((item) => ({
                     lessonId: item.lessonId,

@@ -24,10 +24,10 @@ async function requireAdmin() {
     return { dbUser };
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<Response> {
     try {
         const adminCheck = await requireAdmin();
-        if ('error' in adminCheck) return adminCheck.error;
+        if ('error' in adminCheck) return adminCheck.error as Response;
 
         const { searchParams } = new URL(req.url);
         const status = searchParams.get('status');

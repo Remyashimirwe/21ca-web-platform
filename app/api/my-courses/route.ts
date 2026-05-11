@@ -35,10 +35,10 @@ async function getOrCreateDbUser() {
     return { dbUser };
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
     try {
         const userResult = await getOrCreateDbUser();
-        if ('error' in userResult) return userResult.error;
+        if ('error' in userResult) return userResult.error as Response;
 
         const { dbUser } = userResult;
 

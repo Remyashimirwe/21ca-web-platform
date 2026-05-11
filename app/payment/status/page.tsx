@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,10 +8,10 @@ import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 type PaymentStatus = 'pending' | 'success' | 'failed' | 'checking';
 
-export default function PaymentStatusPage() {
+function PaymentStatusContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    
+
     const refId = searchParams.get('refid');
     const [status, setStatus] = useState<PaymentStatus>('checking');
     const [message, setMessage] = useState('Confirming payment...');
@@ -117,5 +117,26 @@ export default function PaymentStatusPage() {
                 </Card>
             </div>
         </div>
+    );
+}
+
+export default function PaymentStatusPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen pt-24 px-4">
+                <div className="max-w-md mx-auto">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Payment Status</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex justify-center py-12">
+                            <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        }>
+            <PaymentStatusContent />
+        </Suspense>
     );
 }

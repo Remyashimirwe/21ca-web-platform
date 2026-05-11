@@ -32,10 +32,10 @@ async function requireAdmin() {
     return { currentUser };
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
     try {
         const authResult = await requireAdmin();
-        if ('error' in authResult) return authResult.error;
+        if ('error' in authResult) return authResult.error as Response;
 
         const users = await prisma.user.findMany({
             where: { isActive: true },
@@ -61,10 +61,10 @@ export async function GET() {
     }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(req: NextRequest): Promise<Response> {
     try {
         const authResult = await requireAdmin();
-        if ('error' in authResult) return authResult.error;
+        if ('error' in authResult) return authResult.error as Response;
 
         const body = await req.json();
         const { userId, role } = body as { userId?: string; role?: string };
@@ -99,10 +99,10 @@ export async function PATCH(req: NextRequest) {
     }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(req: NextRequest): Promise<Response> {
     try {
         const authResult = await requireAdmin();
-        if ('error' in authResult) return authResult.error;
+        if ('error' in authResult) return authResult.error as Response;
 
         const body = await req.json();
         const { userId } = body as { userId?: string };
