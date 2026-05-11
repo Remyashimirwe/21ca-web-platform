@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { buildCheckoutPayload, buildCheckoutResponse, generateRefId } from '@/lib/afripay';
+import { rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,11 +13,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Rate-limit per Clerk user to prevent abuse / mass-PENDING creation.
+        const rl = rateLimit({
+            key: `premium-init:${userId}`,
+            limit: 10,
+            windowMs: 60 * 1000,
+        });
+        if (!rl.success) {
+            return tooManyRequestsResponse(rl.resetAt);
+        }
+
         const body = await req.json();
-        const { planId, currency: requestedCurrency, amount } = body as {
+        // NOTE: deliberately *do not* destructure `amount` from the body — the
+        // price must come from the server-side plan table below, never from the
+        // client (otherwise users can pay 1 RWF for a LIFETIME plan).
+        const { planId, currency: requestedCurrency } = body as {
             planId?: string;
             currency?: string;
-            amount?: number;
         };
 
         if (!planId) {
@@ -43,11 +56,12 @@ export async function POST(req: NextRequest) {
             LIFETIME: 150000, // 150000 RWF
         };
 
-        const finalAmount = amount || planPrices[planId] || 5000;
+        // Price is taken *only* from the server-side plan table.
+        const finalAmount = planPrices[planId];
         const currency = (requestedCurrency || 'RWF') as "RWF" | "USD";
 
-        if (finalAmount <= 0) {
-            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+        if (!finalAmount || finalAmount <= 0) {
+            return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
         }
 
         const refId = generateRefId(dbUser.id);
@@ -82,13 +96,15 @@ export async function POST(req: NextRequest) {
             planId,
         });
     } catch (error) {
+        // Never echo raw error text back to the client (can leak Prisma /
+        // schema internals); keep details in server logs only.
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('Afripay premium initialize error:', {
             message: errorMessage,
             stack: error instanceof Error ? error.stack : undefined,
         });
         return NextResponse.json(
-            { error: errorMessage || 'Failed to initialize payment' },
+            { error: 'Failed to initialize payment' },
             { status: 500 }
         );
     }

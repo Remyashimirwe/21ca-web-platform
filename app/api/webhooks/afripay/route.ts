@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { 
-    isValidWebhookPayload, 
+import {
+    isValidWebhookPayload,
     processWebhookPayload,
+    verifyWebhookSignature,
+    afripayAppSecret,
     AfripayWebhookPayload,
 } from '@/lib/afripay';
+import { rateLimit, getClientIp, tooManyRequestsResponse } from '@/lib/rate-limit';
 
 const premiumPricing: Record<string, { durationDays: number }> = {
     MONTHLY: { durationDays: 30 },
@@ -13,42 +16,92 @@ const premiumPricing: Record<string, { durationDays: number }> = {
 };
 
 /**
- * Parse webhook payload from both JSON and form-urlencoded formats
+ * Parse a webhook payload from a *raw* body string.
+ *
+ * We deliberately do not call `req.json()` / `req.formData()` directly, because
+ * HMAC verification must run against the exact bytes Afripay signed — any
+ * re-serialization would change whitespace/key-order and break the digest.
  */
-async function extractPayload(req: NextRequest): Promise<Record<string, unknown>> {
-    const contentType = req.headers.get('content-type') || '';
-    
-    if (contentType.includes('application/json')) {
-        return await req.json();
-    } else if (contentType.includes('application/x-www-form-urlencoded')) {
-        const formData = await req.formData();
-        const payload: Record<string, unknown> = {};
-        for (const [key, value] of formData.entries()) {
-            payload[key] = value;
+function parseRawPayload(rawBody: string, contentType: string): Record<string, unknown> | null {
+    const ct = contentType.toLowerCase();
+
+    if (ct.includes('application/json')) {
+        try {
+            return JSON.parse(rawBody);
+        } catch {
+            return null;
         }
-        return payload;
     }
-    
-    // Try JSON by default
+
+    if (ct.includes('application/x-www-form-urlencoded')) {
+        try {
+            const params = new URLSearchParams(rawBody);
+            const out: Record<string, unknown> = {};
+            params.forEach((v, k) => {
+                out[k] = v;
+            });
+            return out;
+        } catch {
+            return null;
+        }
+    }
+
+    // Best-effort JSON fallback (some providers omit the header).
     try {
-        return await req.json();
+        return JSON.parse(rawBody);
     } catch {
-        return {};
+        return null;
     }
 }
 
 export async function POST(req: NextRequest) {
     try {
-        // Extract payload safely (handle JSON or Form-Data)
-        const body = await extractPayload(req);
-        
-        if (!isValidWebhookPayload(body)) {
+        // Rate-limit by IP — webhooks are public, so brute-forcing `client_token`s
+        // (or replaying old payloads) must be cheap to throttle.
+        const ip = getClientIp(req);
+        const rl = rateLimit({
+            key: `afripay-webhook:${ip}`,
+            limit: 30,
+            windowMs: 60 * 1000,
+        });
+        if (!rl.success) {
+            return tooManyRequestsResponse(rl.resetAt);
+        }
+
+        // 1. Read the raw body *exactly once*. Required for HMAC verification.
+        const rawBody = await req.text();
+        const contentType = req.headers.get('content-type') || '';
+
+        // 2. Verify the HMAC signature against AFRIPAY_APP_SECRET.
+        //    Accept the common header names Afripay / proxies might use.
+        const signatureHeader =
+            req.headers.get('x-afripay-signature') ||
+            req.headers.get('x-signature') ||
+            req.headers.get('afripay-signature');
+
+        if (!afripayAppSecret) {
+            console.error('AFRIPAY_APP_SECRET is not configured — refusing to process webhook.');
+            return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+        }
+
+        if (!verifyWebhookSignature(rawBody, signatureHeader, afripayAppSecret)) {
+            console.warn('Afripay webhook signature verification failed', {
+                ip,
+                hasHeader: Boolean(signatureHeader),
+                contentType,
+            });
+            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+        }
+
+        // 3. Parse + shape-validate the payload.
+        const body = parseRawPayload(rawBody, contentType);
+        if (!body || !isValidWebhookPayload(body)) {
             console.warn('Invalid Afripay webhook payload:', body);
             return NextResponse.json({ error: 'Invalid payload structure' }, { status: 400 });
         }
 
         const payload = body as AfripayWebhookPayload;
-        const { status, transaction_ref, payment_method, client_token } = payload;
+        const { client_token } = payload;
 
         // Look up the payment by the client_token (refId)
         const payment = await prisma.payment.findFirst({

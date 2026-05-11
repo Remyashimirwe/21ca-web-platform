@@ -13,10 +13,29 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await prisma.notification.update({
-            where: { id: notificationId },
-            data: { isRead: true }
+        // Resolve the caller's DB id so we can scope the update to *their*
+        // notifications. Before this change the route did
+        // `update({ where: { id: notificationId } })` with no ownership check,
+        // letting any signed-in user mark-read any other user's notifications
+        // by guessing the id (IDOR).
+        const dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId },
+            select: { id: true },
         });
+        if (!dbUser) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // `updateMany` lets us add a `userId` filter and gives us a count we
+        // can use to detect "not yours / not found" without leaking which.
+        const result = await prisma.notification.updateMany({
+            where: { id: notificationId, userId: dbUser.id },
+            data: { isRead: true },
+        });
+
+        if (result.count === 0) {
+            return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {

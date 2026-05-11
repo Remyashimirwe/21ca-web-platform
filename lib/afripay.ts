@@ -233,6 +233,54 @@ export function extractPayloadFromRequest(body: unknown): AfripayWebhookPayload 
 }
 
 /**
+ * Verify Afripay webhook HMAC signature.
+ *
+ * Afripay (and most PSPs) sign the *raw* request body with the merchant
+ * `app_secret` using HMAC-SHA256 and send the hex digest in a header
+ * (commonly `x-afripay-signature`). We accept a few common header names
+ * so we don't have to hard-fail if Afripay tweaks the casing.
+ *
+ * The comparison is timing-safe.
+ *
+ * @param rawBody - Exact raw request body string (must NOT be re-stringified)
+ * @param signatureHeader - Value of the signature header from the request
+ * @param secret - Shared secret (AFRIPAY_APP_SECRET)
+ * @returns true iff the signature matches
+ */
+export function verifyWebhookSignature(
+  rawBody: string,
+  signatureHeader: string | null | undefined,
+  secret: string
+): boolean {
+  if (!signatureHeader || !secret) return false;
+
+  // Some providers prefix the digest with "sha256=".
+  const provided = signatureHeader.trim().replace(/^sha256=/i, "");
+
+  let expected: string;
+  try {
+    expected = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody, "utf8")
+      .digest("hex");
+  } catch {
+    return false;
+  }
+
+  // Lengths must match for timingSafeEqual.
+  if (provided.length !== expected.length) return false;
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(provided, "hex"),
+      Buffer.from(expected, "hex")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Process webhook and return normalized data for database update
  * 
  * @param payload - Afripay webhook payload

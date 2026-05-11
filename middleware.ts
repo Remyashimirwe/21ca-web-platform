@@ -13,7 +13,9 @@ const isPublicRoute = createRouteMatcher([
     '/api/programs(.*)',
     '/api/instructors(.*)',
     '/api/categories(.*)',
-    '/partner(.*)',
+    // NOTE: `/partner(.*)` is intentionally *not* public. The partner area
+    // (e.g. `/partner/dashboard`) should require authentication; if a specific
+    // marketing page needs to be public, add it explicitly here.
 ])
 
 export default clerkMiddleware(async (auth, req) => {

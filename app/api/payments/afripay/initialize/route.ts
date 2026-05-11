@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrencyByCountry, buildCheckoutPayload, buildCheckoutResponse, generateRefId } from '@/lib/afripay';
+import { rateLimit, tooManyRequestsResponse } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,6 +11,17 @@ export async function POST(req: NextRequest) {
 
         if (!userId || !clerkUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Rate-limit per Clerk user — an attacker can otherwise spawn unbounded
+        // PENDING Payment rows tied to their account.
+        const rl = rateLimit({
+            key: `pay-init:${userId}`,
+            limit: 10,
+            windowMs: 60 * 1000,
+        });
+        if (!rl.success) {
+            return tooManyRequestsResponse(rl.resetAt);
         }
 
         const body = await req.json();
@@ -89,13 +101,16 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(checkoutResponse);
     } catch (error) {
+        // Keep internal details (Prisma error text, schema names, stack) on the
+        // server only — return a generic message to the client so we don't leak
+        // implementation info that helps an attacker enumerate the backend.
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('Afripay initialize error:', {
             message: errorMessage,
             stack: error instanceof Error ? error.stack : undefined,
         });
         return NextResponse.json(
-            { error: errorMessage || 'Failed to initialize payment' },
+            { error: 'Failed to initialize payment' },
             { status: 500 }
         );
     }
