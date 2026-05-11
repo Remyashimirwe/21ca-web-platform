@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import type { User } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
     try {
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
         };
         const activities: Activity[] = [];
 
-        recentUsers.forEach(user => {
+        recentUsers.forEach((user: User) => {
             activities.push({
                 type: 'user_registration',
                 message: `New user: ${user.firstName} ${user.lastName} registered`,
