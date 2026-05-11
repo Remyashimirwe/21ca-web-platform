@@ -64,16 +64,16 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        recentEnrollments.forEach(enrollment => {
+        for (const enrollment of recentEnrollments) {
             activities.push({
                 type: 'course_enrollment',
                 message: `${enrollment.user.firstName} enrolled in "${enrollment.course.title}"`,
                 time: formatTimeAgo(enrollment.enrolledAt),
                 timestamp: enrollment.enrolledAt
             });
-        });
+        }
 
-        recentCompletions.forEach(completion => {
+        for (const completion of recentCompletions) {
             if (completion.completedAt) {
                 activities.push({
                     type: 'course_completion',
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
                     timestamp: completion.completedAt
                 });
             }
-        });
+        }
 
         // Sort by timestamp and take top 10
         activities.sort((a, b) => 
