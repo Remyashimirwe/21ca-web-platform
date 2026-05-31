@@ -215,7 +215,12 @@ const HomePage = () => {
 
     return (
         <div className="min-h-screen bg-background">
-            <section className="relative mt-16 h-[88vh] min-h-[720px] overflow-hidden">
+            <section className="relative mt-16 h-[88vh] min-h-[720px] overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-background">
+                <div className="absolute inset-0 overflow-hidden">
+                    {/* Animated background gradient orbs */}
+                    <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse"></div>
+                    <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl opacity-40 animate-pulse animation-delay-2000"></div>
+                </div>
                 <div className="relative h-full w-full">
                     {carouselSlides.map((slide, index) => (
                         <div
@@ -229,46 +234,59 @@ const HomePage = () => {
                             }`}
                         >
                             <div
-                                className="flex h-full w-full items-center bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-800/60"
+                                className="flex h-full w-full items-center bg-gradient-to-r from-slate-950/95 via-slate-900/85 to-slate-800/75"
                                 style={{
-                                    backgroundImage: `linear-gradient(rgba(10, 15, 30, 0.78), rgba(10, 15, 30, 0.78)), url(${slide.image})`,
+                                    backgroundImage: `linear-gradient(135deg, rgba(10, 15, 30, 0.85) 0%, rgba(10, 15, 30, 0.75) 50%, rgba(10, 15, 30, 0.85) 100%), url(${slide.image})`,
                                     backgroundSize: "cover",
                                     backgroundPosition: "center",
                                 }}
                             >
-                                <div className="container mx-auto px-6">
-                                    <div className="max-w-4xl">
-                                        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur">
-                                            <Sparkles className="h-4 w-4 text-yellow-300" />
-                                            {slide.subtitle}
+                                <div className="container mx-auto px-6 sm:px-8 lg:px-10">
+                                    <div className="max-w-5xl">
+                                        <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white backdrop-blur-xl transition-all duration-300 hover:border-white/40 hover:bg-white/10">
+                                            <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse" />
+                                            <span>{slide.subtitle}</span>
                                         </div>
 
-                                        <h1 className="max-w-3xl text-5xl font-black tracking-tight text-white md:text-7xl">
-                                            {slide.title}
+                                        <h1 className="max-w-4xl text-6xl lg:text-8xl font-black tracking-tighter text-white leading-tight mb-2">
+                                            {slide.title.split(" ").map((word, i) => (
+                                                <span
+                                                    key={i}
+                                                    className={i % 2 === 0 ? "" : "bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"}
+                                                >
+                                                    {word}{" "}
+                                                </span>
+                                            ))}
                                         </h1>
 
-                                        <p className="mt-6 max-w-2xl text-xl leading-relaxed text-slate-200 md:text-2xl">
+                                        <p className="mt-8 max-w-3xl text-xl lg:text-2xl leading-relaxed text-slate-200">
                                             {slide.description}
                                         </p>
 
-                                        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+                                        <div className="mt-12 flex flex-col gap-4 sm:flex-row flex-wrap">
                                             <Link href={"/programs"}>
                                                 <Button
                                                     size="lg"
-                                                    className="h-14 bg-white px-8 text-base font-semibold text-slate-950 shadow-xl hover:bg-slate-100"
+                                                    className="h-14 bg-white px-10 text-base font-semibold text-slate-950 shadow-2xl hover:shadow-2xl hover:shadow-white/40 hover:scale-105 transition-all duration-300 relative group overflow-hidden"
                                                 >
-                                                    Explore Programs
-                                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-white via-slate-100 to-white translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                                                    <span className="relative z-10 flex items-center gap-2">
+                                                        Explore Programs
+                                                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                                    </span>
                                                 </Button>
                                             </Link>
 
                                             <Link href={"/premium"}>
                                                 <Button
                                                     size="lg"
-                                                    className="h-14 border border-yellow-300/30 bg-gradient-to-r from-yellow-400 to-yellow-600 px-8 text-base font-semibold text-slate-950 shadow-xl hover:from-yellow-300 hover:to-yellow-500"
+                                                    className="h-14 border border-yellow-300/50 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-10 text-base font-semibold text-slate-950 shadow-2xl hover:shadow-2xl hover:shadow-yellow-500/40 hover:scale-105 transition-all duration-300 relative group overflow-hidden"
                                                 >
-                                                    <Crown className="mr-2 h-5 w-5" />
-                                                    Get Premium
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                                                    <span className="relative z-10 flex items-center gap-2">
+                                                        <Crown className="h-5 w-5" />
+                                                        Get Premium
+                                                    </span>
                                                 </Button>
                                             </Link>
 
@@ -276,15 +294,15 @@ const HomePage = () => {
                                                 <Button
                                                     variant="outline"
                                                     size="lg"
-                                                    className="h-14 border-white/30 bg-white/10 px-8 text-base text-white backdrop-blur hover:bg-white hover:text-slate-950"
+                                                    className="h-14 border-white/40 bg-white/10 px-10 text-base text-white backdrop-blur-xl hover:bg-white/20 hover:border-white/60 transition-all duration-300 hover:scale-105 relative group"
                                                 >
-                                                    <UserPlus className="mr-2 h-5 w-5" />
+                                                    <UserPlus className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
                                                     Join Us
                                                 </Button>
                                             </Link>
                                         </div>
 
-                                        <div className="mt-12 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
+                                        <div className="mt-16 grid max-w-3xl grid-cols-2 gap-6 sm:grid-cols-4">
                                             {[
                                                 { label: "Courses", value: "75+" },
                                                 { label: "Students", value: "1,000+" },
@@ -293,10 +311,10 @@ const HomePage = () => {
                                             ].map((stat) => (
                                                 <div
                                                     key={stat.label}
-                                                    className="rounded-2xl border border-white/15 bg-white/10 p-4 text-center backdrop-blur-sm"
+                                                    className="group rounded-2xl border border-white/20 bg-white/5 p-6 text-center backdrop-blur-lg transition-all duration-300 hover:border-white/40 hover:bg-white/10 hover:-translate-y-1"
                                                 >
-                                                    <div className="text-2xl font-black text-white">{stat.value}</div>
-                                                    <div className="mt-1 text-sm text-slate-200">{stat.label}</div>
+                                                    <div className="text-3xl lg:text-4xl font-black text-white group-hover:text-primary transition-colors duration-300">{stat.value}</div>
+                                                    <div className="mt-2 text-sm lg:text-base text-slate-300 font-medium">{stat.label}</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -322,52 +340,67 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-background py-24">
-                <div className="container mx-auto px-6">
-                    <div className="mb-16 text-center">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+            <section className="relative bg-gradient-to-b from-background via-background to-muted/20 py-24 lg:py-32">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-1/3 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30"></div>
+                    <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-30"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
+                    <div className="mb-20 text-center">
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary border border-primary/20">
                             <Sparkles className="h-4 w-4" />
                             Why Choose Us
                         </div>
-                        <h2 className="text-4xl font-black tracking-tight text-foreground md:text-5xl">
-                            Built for Modern Learning
+                        <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                            Built for <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">Modern Learning</span>
                         </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                        <p className="mx-auto mt-6 max-w-3xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
                             Practical, engaging and designed for learners who want real results.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
                         {services.map((service, index) => (
                             <div
                                 key={index}
-                                className={`group rounded-3xl border bg-card p-8 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${
-                                    index % 2 === 0 ? "hover:border-emerald-500/40" : "hover:border-blue-500/40"
+                                className={`group rounded-3xl border transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 overflow-hidden relative ${
+                                    index % 2 === 0
+                                        ? "border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-emerald-500/0 hover:border-emerald-500/40"
+                                        : "border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-blue-500/0 hover:border-blue-500/40"
                                 }`}
                             >
-                                <div className="mb-6 inline-flex rounded-2xl bg-primary/10 p-4">
-                                    <service.icon
-                                        size={40}
-                                        className={`transition-all duration-300 group-hover:scale-110 ${
-                                            index % 2 === 0 ? "text-emerald-500" : "text-blue-500"
-                                        }`}
-                                    />
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div className="relative p-8 lg:p-10">
+                                    <div className={`mb-6 inline-flex rounded-2xl p-4 transition-all duration-300 group-hover:scale-110 ${
+                                        index % 2 === 0
+                                            ? "bg-emerald-500/15 text-emerald-500"
+                                            : "bg-blue-500/15 text-blue-500"
+                                    }`}>
+                                        <service.icon size={40} className="transition-transform duration-300 group-hover:rotate-12" />
+                                    </div>
+                                    <h3 className="text-2xl lg:text-3xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">{service.title}</h3>
+                                    <p className="mt-4 leading-relaxed text-muted-foreground group-hover:text-foreground/80 transition-colors duration-300 text-base lg:text-lg">
+                                        {service.description}
+                                    </p>
+                                    <div className={`mt-6 h-1 w-0 group-hover:w-12 transition-all duration-500 rounded-full ${
+                                        index % 2 === 0 ? "bg-emerald-500" : "bg-blue-500"
+                                    }`}></div>
                                 </div>
-                                <h3 className="text-2xl font-bold text-foreground">{service.title}</h3>
-                                <p className="mt-4 leading-relaxed text-muted-foreground">
-                                    {service.description}
-                                </p>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            <section className="bg-muted/20 py-24">
-                <div className="container mx-auto px-6">
-                    <div className="grid items-center gap-16 lg:grid-cols-2">
-                        <div className="relative">
-                            <div className="overflow-hidden rounded-[2rem] shadow-2xl">
+            <section className="relative bg-gradient-to-b from-muted/20 via-background to-background py-24 lg:py-32">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
+                    <div className="grid items-center gap-16 lg:gap-20 lg:grid-cols-2">
+                        <div className="relative group">
+                            <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
+                            <div className="relative overflow-hidden rounded-3xl shadow-2xl">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src="https://images.unsplash.com/photo-1673515334462-8ec684bd664b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OTV8fGVsZWFybmluZ3xlbnwwfHwwfHx8MA%3D%3D"
@@ -376,32 +409,32 @@ const HomePage = () => {
                                 />
                             </div>
 
-                            <div className="absolute -bottom-8 -right-8 rounded-3xl bg-primary p-6 text-primary-foreground shadow-2xl">
+                            <div className="absolute -bottom-8 -right-8 rounded-3xl bg-gradient-to-br from-primary to-primary/70 p-8 text-primary-foreground shadow-2xl border border-white/20 backdrop-blur-sm">
                                 <div className="text-center">
-                                    <div className="text-3xl font-black">1000+</div>
-                                    <div className="text-sm opacity-90">Students Empowered</div>
+                                    <div className="text-4xl lg:text-5xl font-black">1000+</div>
+                                    <div className="text-base opacity-90 font-semibold">Students Empowered</div>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+                            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary border border-primary/20">
+                                <Sparkles className="h-4 w-4" />
                                 About Us
                             </div>
-                            <h2 className="text-4xl font-black tracking-tight text-foreground md:text-5xl">
-                                Welcome to 21st Century Academy
+                            <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                                Welcome to <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">21st Century Academy</span>
                             </h2>
-                            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+                            <p className="mt-8 text-lg lg:text-xl leading-relaxed text-muted-foreground">
                                 We&#39;re building Africa&#39;s future through transformative education that bridges
                                 traditional knowledge with cutting-edge skills for the digital age.
                             </p>
-                            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+                            <p className="mt-6 text-lg lg:text-xl leading-relaxed text-muted-foreground">
                                 Our comprehensive programs span STEM education, digital financial literacy, green
-                                entrepreneurship, and faith-based coaching - all designed to empower learners across
-                                Rwanda and beyond.
+                                entrepreneurship, and faith-based coaching - all designed to empower learners across Rwanda and beyond.
                             </p>
 
-                            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                            <div className="mt-10 grid gap-4 sm:grid-cols-2">
                                 {[
                                     "Expert Instructors",
                                     "Online Classes",
@@ -410,9 +443,12 @@ const HomePage = () => {
                                     "Community Impact",
                                     "Career Support",
                                 ].map((feature, index) => (
-                                    <div key={index} className="flex items-center gap-3 rounded-2xl border bg-card p-4">
-                                        <CheckCircle className="h-5 w-5 flex-shrink-0 text-primary" />
-                                        <span className="font-medium text-foreground">{feature}</span>
+                                    <div
+                                        key={index}
+                                        className="group flex items-center gap-4 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent p-5 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 cursor-default"
+                                    >
+                                        <CheckCircle className="h-6 w-6 flex-shrink-0 text-primary group-hover:scale-110 transition-transform duration-300" />
+                                        <span className="font-semibold text-foreground text-base lg:text-lg">{feature}</span>
                                     </div>
                                 ))}
                             </div>
@@ -420,10 +456,13 @@ const HomePage = () => {
                             <Link href={"/about"}>
                                 <Button
                                     size="lg"
-                                    className="mt-8 h-14 px-8 text-base font-semibold shadow-lg"
+                                    className="mt-10 h-14 px-10 text-base font-semibold shadow-lg hover:shadow-2xl hover:shadow-primary/30 hover:scale-105 transition-all duration-300 relative group overflow-hidden"
                                 >
-                                    Learn More About Us
-                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/80 to-primary/60 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        Learn More About Us
+                                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                    </span>
                                 </Button>
                             </Link>
                         </div>
@@ -431,22 +470,26 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-background py-24">
-                <div className="container mx-auto px-6">
-                    <div className="mb-16 text-center">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+            <section className="relative bg-gradient-to-b from-background via-muted/20 to-background py-24 lg:py-32">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30"></div>
+                    <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-30"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
+                    <div className="mb-20 text-center">
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary border border-primary/20">
                             <BookOpen className="h-4 w-4" />
                             Learning Pathways
                         </div>
-                        <h2 className="text-4xl font-black tracking-tight text-foreground md:text-5xl">
-                            Our Programs
+                        <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                            Explore Our <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">Programs</span>
                         </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                        <p className="mx-auto mt-6 max-w-3xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
                             Discover comprehensive programs designed to equip you with skills for tomorrow&#39;s challenges.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
                         {isLoading ? (
                             // Loading Skeletons
                             [...Array(3)].map((_, i) => (
@@ -455,20 +498,20 @@ const HomePage = () => {
                         ) : categories.length > 0 ? (
                             <>
                                 <div className="lg:col-span-2 lg:row-span-2">
-                                    <div className="group relative min-h-[460px] overflow-hidden rounded-3xl shadow-2xl">
+                                    <div className="group relative min-h-[460px] overflow-hidden rounded-3xl shadow-2xl border border-white/10 hover:border-white/30 transition-all duration-300">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                             src={categories[0].image}
                                             alt={categories[0].name}
                                             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
-                                        <div className="absolute bottom-6 left-6 right-6">
-                                            <div className="rounded-2xl border border-white/15 bg-white/95 p-4 shadow-xl backdrop-blur-sm dark:bg-slate-900/95">
-                                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent group-hover:via-slate-950/40 transition-all duration-300" />
+                                        <div className="absolute bottom-8 left-8 right-8">
+                                            <div className="rounded-2xl border border-white/20 bg-white/95 backdrop-blur-xl p-6 shadow-2xl group-hover:shadow-3xl transition-all duration-300 group-hover:border-white/40">
+                                                <h3 className="text-3xl lg:text-4xl font-black text-slate-900">
                                                     {categories[0].name}
                                                 </h3>
-                                                <p className="mt-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                                                <p className="mt-2 font-semibold text-lg bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
                                                     {categories[0].courses} Courses Available
                                                 </p>
                                             </div>
@@ -478,30 +521,30 @@ const HomePage = () => {
 
                                 {categories.slice(1).map((category, index) => (
                                     <div key={index} className="lg:col-span-2">
-                                        <div className="group relative h-56 overflow-hidden rounded-3xl shadow-xl">
+                                        <div className="group relative h-56 overflow-hidden rounded-3xl shadow-xl border border-white/10 hover:border-white/30 transition-all duration-300">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
                                                 src={category.image}
                                                 alt={category.name}
                                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                             />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
-                                            <div className="absolute bottom-4 left-4 right-4">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/35 to-transparent group-hover:via-slate-950/25 transition-all duration-300" />
+                                            <div className="absolute bottom-6 left-6 right-6">
                                                 <div
-                                                    className={`rounded-2xl border bg-white/95 p-3 backdrop-blur-sm dark:bg-slate-900/95 ${
+                                                    className={`rounded-2xl border bg-white/95 backdrop-blur-xl p-4 shadow-xl hover:shadow-2xl transition-all duration-300 ${
                                                         index % 2 === 0
-                                                            ? "border-blue-500/20"
-                                                            : "border-emerald-500/20"
+                                                            ? "border-blue-500/20 hover:border-blue-500/40"
+                                                            : "border-emerald-500/20 hover:border-emerald-500/40"
                                                     }`}
                                                 >
-                                                    <h4 className="font-bold text-slate-900 dark:text-white">
+                                                    <h4 className="font-bold text-slate-900 text-lg">
                                                         {category.name}
                                                     </h4>
                                                     <p
-                                                        className={`text-sm font-semibold ${
+                                                        className={`text-base font-semibold mt-1 ${
                                                             index % 2 === 0
-                                                                ? "text-blue-600 dark:text-blue-400"
-                                                                : "text-emerald-600 dark:text-emerald-400"
+                                                                ? "text-blue-600"
+                                                                : "text-emerald-600"
                                                         }`}
                                                     >
                                                         {category.courses} Courses
@@ -521,22 +564,25 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-muted/20 py-24">
-                <div className="container mx-auto px-6">
-                    <div className="mb-16 text-center">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+            <section className="relative bg-gradient-to-b from-muted/20 via-background to-background py-24 lg:py-32">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
+                    <div className="mb-20 text-center">
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary border border-primary/20">
                             <Sparkles className="h-4 w-4" />
                             Featured Courses
                         </div>
-                        <h2 className="text-4xl font-black tracking-tight text-foreground md:text-5xl">
-                            Popular Courses
+                        <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                            Popular <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">Courses</span>
                         </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                        <p className="mx-auto mt-6 max-w-3xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
                             Start your learning journey with our most popular and highly-rated courses.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
                         {isLoading ? (
                             [...Array(3)].map((_, i) => (
                                 <div key={i} className="h-96 rounded-3xl bg-muted animate-pulse" />
@@ -545,70 +591,68 @@ const HomePage = () => {
                             courses.map((course) => (
                                 <div
                                     key={course.id}
-                                    className="group overflow-hidden rounded-3xl border bg-card shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+                                    className="group overflow-hidden rounded-3xl border border-white/10 bg-card shadow-lg transition-all duration-500 hover:border-white/30 hover:-translate-y-3 hover:shadow-2xl hover:shadow-primary/30"
                                 >
-                                    <div className="relative overflow-hidden">
+                                    <div className="relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                             src={course.image}
                                             alt={course.title}
-                                            className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                                        <div className="absolute bottom-4 left-4 right-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 translate-y-4">
-                                            <div className="flex gap-2">
-                                                <Link href={`/courses/${course.slug}`}>
-                                                    <Button size="sm" className="rounded-full px-4">
-                                                        Preview
-                                                    </Button>
-                                                </Link>
-                                                <Button
-                                                    size="sm"
-                                                    variant="secondary"
-                                                    className="rounded-full px-4"
-                                                >
-                                                    Enroll
+                                        <div className="absolute bottom-4 left-4 right-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 translate-y-4 flex gap-3">
+                                            <Link href={`/courses/${course.slug}`} className="flex-1">
+                                                <Button size="sm" className="w-full rounded-xl px-4 font-semibold hover:scale-105 transition-transform">
+                                                    Preview
                                                 </Button>
-                                            </div>
+                                            </Link>
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                className="flex-1 rounded-xl px-4 font-semibold hover:scale-105 transition-transform"
+                                            >
+                                                Enroll
+                                            </Button>
                                         </div>
                                     </div>
 
-                                    <div className="p-6">
-                                        <div className="mb-4 flex items-start justify-between gap-4">
+                                    <div className="p-8">
+                                        <div className="mb-6 flex items-start justify-between gap-4">
                                             <div>
-                                                <p className="text-sm text-muted-foreground">Course Price</p>
-                                                <div className="mt-1 flex items-baseline gap-2">
-                                                    <h3 className="text-3xl font-black text-primary">
+                                                <p className="text-sm text-muted-foreground font-medium">Course Price</p>
+                                                <div className="mt-2 flex items-baseline gap-3">
+                                                    <h3 className="text-4xl lg:text-5xl font-black text-primary">
                                                         {course.price}
                                                     </h3>
-                                                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                                                    <span className="rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-bold text-primary border border-primary/20">
                                                         Premium
                                                     </span>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-1 rounded-full bg-yellow-50 px-3 py-1 text-sm font-medium text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300">
-                                                <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                                            <div className="flex items-center gap-2 rounded-full bg-yellow-50 px-4 py-2 text-sm font-bold text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300 shadow-sm">
+                                                <Star size={16} className="fill-yellow-400 text-yellow-400" />
                                                 {course.rating.toFixed(1)}
                                             </div>
                                         </div>
 
-                                        <h4 className="line-clamp-2 text-xl font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
+                                        <h4 className="line-clamp-2 text-2xl lg:text-3xl font-bold text-foreground transition-colors duration-300 group-hover:text-primary mb-4">
                                             {course.title}
                                         </h4>
 
-                                        <div className="mt-4 flex items-center justify-between rounded-2xl border bg-muted/40 p-4 text-sm text-muted-foreground">
-                                            <div className="flex items-center gap-1.5">
-                                                <User size={14} className="text-primary" />
-                                                <span>{course.instructor}</span>
+                                        <div className="mt-6 grid grid-cols-3 gap-3 rounded-2xl border border-white/10 bg-muted/30 p-4 text-sm font-semibold text-muted-foreground hover:border-white/20 transition-all duration-300">
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <User size={16} className="text-primary" />
+                                                <span className="truncate">{course.instructor}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock size={14} className="text-primary" />
+                                            <div className="border-l border-r border-white/10 flex items-center gap-2 justify-center">
+                                                <Clock size={16} className="text-primary" />
                                                 <span>{course.duration}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Users size={14} className="text-primary" />
+                                            <div className="flex items-center gap-2 justify-center">
+                                                <Users size={16} className="text-primary" />
                                                 <span>{course.students}</span>
                                             </div>
                                         </div>
@@ -622,12 +666,12 @@ const HomePage = () => {
                         )}
                     </div>
 
-                    <div className="mt-12 text-center">
+                    <div className="mt-16 text-center">
                         <Link href={"/programs"}>
                             <Button
                                 variant="outline"
                                 size="lg"
-                                className="h-14 px-8 text-base font-semibold shadow-sm transition-all hover:-translate-y-0.5"
+                                className="h-14 px-10 text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 hover:bg-primary/5 hover:text-primary border-primary/30 hover:border-primary/60"
                             >
                                 View All Courses
                                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -637,22 +681,26 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-background py-24">
-                <div className="container mx-auto px-6">
-                    <div className="mb-16 text-center">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+            <section className="relative bg-gradient-to-b from-background via-muted/20 to-background py-24 lg:py-32">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-0 right-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-30"></div>
+                    <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
+                    <div className="mb-20 text-center">
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary border border-primary/20">
                             <Users className="h-4 w-4" />
                             Our Team
                         </div>
-                        <h2 className="text-4xl font-black tracking-tight text-foreground md:text-5xl">
-                            Expert Instructors
+                        <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                            Expert <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">Instructors</span>
                         </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                        <p className="mx-auto mt-6 max-w-3xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
                             Learn from passionate educators and industry leaders committed to your success.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-4">
                         {isLoading ? (
                             [...Array(4)].map((_, i) => (
                                 <div key={i} className="h-80 rounded-3xl bg-muted animate-pulse" />
@@ -661,103 +709,106 @@ const HomePage = () => {
                             instructors.map((instructor, index) => (
                                 <div
                                     key={index}
-                                    className="group overflow-hidden rounded-3xl border bg-card shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+                                    className="group overflow-hidden rounded-3xl border border-white/10 bg-card shadow-lg transition-all duration-500 hover:border-white/30 hover:-translate-y-3 hover:shadow-2xl hover:shadow-primary/30"
                                 >
-                                    <div className="relative overflow-hidden">
+                                    <div className="relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                             src={instructor.image}
                                             alt={instructor.name}
-                                            className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            className="h-80 w-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                                     </div>
 
-                                    <div className="relative -mt-8 mx-4">
-                                        <div className="rounded-2xl border bg-card p-1 shadow-xl">
-                                            <div className="flex justify-center gap-2 py-2">
+                                    <div className="relative -mt-10 mx-5 mb-4">
+                                        <div className="rounded-2xl border border-white/20 bg-card backdrop-blur-xl p-3 shadow-2xl hover:border-white/40 transition-all duration-300">
+                                            <div className="flex justify-center gap-3">
                                                 {[FaFacebookF, FaTwitter, FaLinkedinIn].map((Icon, socialIndex) => (
                                                     <Button
                                                         key={socialIndex}
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="h-9 w-9 rounded-full hover:bg-primary hover:text-white"
+                                                        className="h-10 w-10 rounded-full hover:bg-primary/20 hover:text-primary transition-all duration-300"
                                                     >
-                                                        <Icon size={12} />
+                                                        <Icon size={14} />
                                                     </Button>
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-6 pt-4 text-center">
-                                        <h5 className="text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
+                                    <div className="p-6 pt-0 text-center">
+                                        <h5 className="text-xl font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
                                             {instructor.name}
                                         </h5>
-                                        <p className="text-sm text-muted-foreground">{instructor.designation}</p>
+                                        <p className="text-base text-muted-foreground mt-1 font-semibold">{instructor.designation}</p>
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div className="col-span-4 py-10 text-center">
-                                <p className="text-muted-foreground italic">Instructors information coming soon.</p>
+                                <p className="text-muted-foreground italic text-lg">Instructors information coming soon.</p>
                             </div>
                         )}
                     </div>
                 </div>
             </section>
 
-            <section className="bg-primary/5 py-24">
-                <div className="container mx-auto px-6">
-                    <div className="mb-16 text-center">
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+            <section className="relative bg-gradient-to-b from-background via-primary/5 to-background py-24 lg:py-32">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-3xl opacity-40"></div>
+                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-30"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
+                    <div className="mb-20 text-center">
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary border border-primary/20">
                             <Award className="h-4 w-4" />
                             Success Stories
                         </div>
-                        <h2 className="text-4xl font-black tracking-tight text-foreground md:text-5xl">
-                            What Our Students Say
+                        <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                            What Our <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">Students Say</span>
                         </h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                        <p className="mx-auto mt-6 max-w-3xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
                             Real stories from learners whose lives have been transformed through our programs.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3">
                         {testimonials.map((testimonial, index) => (
                             <div
                                 key={index}
-                                className="group rounded-3xl border bg-card p-8 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                                className="group rounded-3xl border border-white/10 bg-card p-10 shadow-lg transition-all duration-500 hover:border-white/30 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20 relative overflow-hidden"
                             >
-                                <div className="mb-6 text-center">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={testimonial.image}
-                                        alt={testimonial.name}
-                                        className="mx-auto mb-4 h-16 w-16 rounded-full border-4 border-primary/20 transition-colors duration-300 group-hover:border-primary/40"
-                                    />
-                                    <h5 className="text-lg font-bold text-foreground">{testimonial.name}</h5>
-                                    <p className="text-sm text-muted-foreground">{testimonial.profession}</p>
-                                </div>
-
-                                <div className="relative">
-                                    <div className="absolute -top-2 -left-2 text-6xl font-serif text-primary/20">
-                                        &#34;
+                                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <div className="relative z-10">
+                                    <div className="mb-8 text-center">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={testimonial.image}
+                                            alt={testimonial.name}
+                                            className="mx-auto mb-4 h-20 w-20 rounded-full border-4 border-primary/30 transition-all duration-300 group-hover:border-primary/60 group-hover:scale-110 shadow-lg"
+                                        />
+                                        <h5 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">{testimonial.name}</h5>
+                                        <p className="text-sm text-muted-foreground font-semibold mt-1">{testimonial.profession}</p>
                                     </div>
-                                    <p className="relative z-10 pl-6 italic leading-relaxed text-muted-foreground">
-                                        {testimonial.text}
-                                    </p>
-                                    <div className="absolute -bottom-4 -right-2 text-6xl font-serif text-primary/20 rotate-180">
-                                        &#34;
-                                    </div>
-                                </div>
 
-                                <div className="mt-6 flex justify-center">
-                                    <div className="flex gap-1">
+                                    <div className="relative mb-8">
+                                        <div className="absolute -top-3 -left-2 text-7xl font-serif text-primary/15 group-hover:text-primary/25 transition-colors duration-300">
+                                            &#34;
+                                        </div>
+                                        <p className="relative z-10 pl-8 text-lg lg:text-xl italic leading-relaxed text-muted-foreground group-hover:text-foreground/90 transition-colors duration-300">
+                                            {testimonial.text}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex justify-center gap-1.5">
                                         {[...Array(5)].map((_, i) => (
                                             <Star
                                                 key={i}
-                                                size={16}
-                                                className="fill-yellow-400 text-yellow-400"
+                                                size={18}
+                                                className="fill-yellow-400 text-yellow-400 transition-transform duration-300 group-hover:scale-110"
+                                                style={{ transitionDelay: `${i * 50}ms` }}
                                             />
                                         ))}
                                     </div>
@@ -768,8 +819,12 @@ const HomePage = () => {
                 </div>
             </section>
 
-            <section className="bg-primary py-20 text-white">
-                <div className="container mx-auto px-6">
+            <section className="relative bg-gradient-to-r from-primary via-primary/90 to-primary py-24 lg:py-32 text-white overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-0 left-1/3 w-96 h-96 bg-white/10 rounded-full blur-3xl opacity-20"></div>
+                    <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl opacity-20"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10">
                     <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
                         {[
                             { number: "1,000+", label: "Students Enrolled", icon: Users },
@@ -777,38 +832,54 @@ const HomePage = () => {
                             { number: "75+", label: "Courses Available", icon: BookOpen },
                             { number: "95%", label: "Success Rate", icon: Award },
                         ].map((stat, index) => (
-                            <div key={index} className="group text-center">
-                                <stat.icon className="mx-auto mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
-                                <div className="text-3xl font-black lg:text-4xl">{stat.number}</div>
-                                <div className="mt-2 text-lg opacity-90">{stat.label}</div>
+                            <div
+                                key={index}
+                                className="group rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl p-8 text-center shadow-xl transition-all duration-500 hover:border-white/40 hover:-translate-y-2 hover:bg-white/15 hover:shadow-2xl"
+                            >
+                                <div className="flex justify-center mb-6">
+                                    <div className="p-4 rounded-2xl bg-white/20 group-hover:bg-white/30 transition-all duration-300">
+                                        <stat.icon className="h-8 w-8 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                                    </div>
+                                </div>
+                                <div className="text-4xl lg:text-5xl font-black mb-2">{stat.number}</div>
+                                <div className="text-base lg:text-lg font-semibold opacity-90">{stat.label}</div>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            <section className="bg-gradient-to-r from-slate-950 to-slate-800 py-20 text-white">
-                <div className="container mx-auto px-6 text-center">
-                    <div className="mx-auto max-w-3xl">
-                        <h2 className="text-4xl font-black tracking-tight md:text-5xl">
-                            Ready to Transform Your Future?
+            <section className="relative bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 py-24 lg:py-32 text-white overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-3xl opacity-40"></div>
+                </div>
+                <div className="container mx-auto px-6 sm:px-8 lg:px-10 relative z-10 text-center">
+                    <div className="mx-auto max-w-4xl">
+                        <h2 className="text-6xl lg:text-7xl font-black tracking-tighter">
+                            Ready to Transform Your <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">Future?</span>
                         </h2>
-                        <p className="mt-6 text-xl leading-relaxed text-slate-200">
+                        <p className="mt-8 text-xl lg:text-2xl leading-relaxed text-slate-200">
                             Join thousands of learners who are building skills for tomorrow. Start your journey
                             today with courses designed for the African context.
                         </p>
-                        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+                        <div className="mt-12 flex flex-col justify-center gap-6 sm:flex-row flex-wrap">
                             <Link href={"/programs"}>
-                                <Button size="lg" className="h-14 px-8 text-base font-semibold">
-                                    Browse Courses
-                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                <Button
+                                    size="lg"
+                                    className="h-14 px-10 text-base font-semibold bg-white text-slate-950 hover:bg-slate-100 shadow-xl hover:shadow-2xl hover:shadow-white/40 hover:scale-105 transition-all duration-300 relative group overflow-hidden"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-white via-slate-100 to-white translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        Browse Courses
+                                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                    </span>
                                 </Button>
                             </Link>
                             <Link href={"/about"}>
                                 <Button
                                     variant="outline"
                                     size="lg"
-                                    className="h-14 border-white/30 bg-white/5 px-8 text-base text-white hover:bg-white hover:text-slate-950"
+                                    className="h-14 border-white/50 bg-white/10 px-10 text-base text-white backdrop-blur-xl hover:bg-white/20 hover:border-white/80 transition-all duration-300 hover:scale-105 font-semibold"
                                 >
                                     Learn More
                                 </Button>
