@@ -33,7 +33,7 @@ export default function ConditionalNavbar() {
 
   return (
     <>
-      <div className="h-14 sm:h-16" aria-hidden="true" />
+      <div className="h-20 lg:h-24" aria-hidden="true" />
       <Navbar />
     </>
   );
