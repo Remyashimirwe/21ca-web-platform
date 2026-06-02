@@ -62,9 +62,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             {/* Sidebar */}
             {!isLearningPage && (
                 <div className={cn(
-                    "fixed left-0 top-0 z-50 h-full transition-transform duration-300",
+                    "fixed left-0 top-0 z-50 h-full transition-transform duration-500 ease-in-out",
                     isMobile && !sidebarOpen && "-translate-x-full",
-                    isMobile ? "w-64" : sidebarCollapsed ? "w-16" : "w-64"
+                    isMobile ? "w-64" : sidebarCollapsed ? "w-14" : "w-64"
                 )}>
                     <Sidebar
                         collapsed={!isMobile && sidebarCollapsed}
@@ -75,8 +75,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
             {/* Main Content */}
             <div className={cn(
-                "flex-1 flex flex-col transition-all duration-300",
-                isMobile || isLearningPage ? "ml-0" : sidebarCollapsed ? "ml-16" : "ml-64"
+                "flex-1 flex flex-col min-h-screen transition-all duration-500 ease-in-out",
+                isMobile || isLearningPage ? "ml-0" : sidebarCollapsed ? "ml-14" : "ml-64"
             )}>
                 {/* Navbar */}
                 {!isLearningPage && (

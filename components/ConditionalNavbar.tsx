@@ -21,6 +21,11 @@ export default function ConditionalNavbar() {
     '/programs/',
     '/community',
     '/certificates',
+    '/settings',
+    '/calendar',
+    '/support',
+    '/partner',
+    '/profile',
   ];
 
   const shouldHideNavbar = hiddenRoutes.some((route) =>
